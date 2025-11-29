@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { GameScenario, ScenarioOption } from '../types';
+import { GameScenario, ScenarioOption, RewardType, AppStatus } from '../types';
 import { TILE_SIZE, MAP_WIDTH, MAP_HEIGHT, INITIAL_PLAYER_POS, SPRITES, OBSTACLES_SET, TERRAIN_MAP, PALETTE } from '../constants';
 
 interface GameCanvasProps {
@@ -12,9 +12,27 @@ interface GameCanvasProps {
   coins: number;
   setCoins: React.Dispatch<React.SetStateAction<number>>;
   onFinish: (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario) => void;
+  activeReward: RewardType | null;
+  onObstacleRemoved: () => void;
+  status: AppStatus;
+  setStatus: React.Dispatch<React.SetStateAction<AppStatus>>;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score, lives, setLives, coins, setCoins, onFinish }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({
+  scenarios,
+  completedIds,
+  score,
+  lives,
+  setLives,
+  coins,
+  setCoins,
+  onFinish,
+  activeReward,
+  onObstacleRemoved,
+  status,
+  setStatus
+}) => {
+  const [obstacles, setObstacles] = useState<Set<string>>(OBSTACLES_SET);
   const [playerPos, setPlayerPos] = useState(INITIAL_PLAYER_POS);
   const [activeScenario, setActiveScenario] = useState<GameScenario | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -44,6 +62,60 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
   const containerRef = useRef<HTMLDivElement>(null);
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Add an effect to handle obstacle removal when a reward is active
+  useEffect(() => {
+    if (!activeReward) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && (activeReward === 'axe' || activeReward === 'magic_fire')) {
+        e.preventDefault();
+        
+        const radius = activeReward === 'axe' ? 1 : 2; // Larger radius for magic fire
+        const newObstacles = new Set(obstacles);
+        let removedAny = false;
+        
+        // Check all tiles in a square around the player
+        for (let dx = -radius; dx <= radius; dx++) {
+          for (let dy = -radius; dy <= radius; dy++) {
+            const x = Math.round(playerPos.x + dx);
+            const y = Math.round(playerPos.y + dy);
+            
+            // Skip if out of bounds
+            if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) continue;
+            
+            // Check each obstacle at this position
+            for (const obs of obstacles) {
+              const [obsX, obsY, obsType] = obs.split(',');
+              if (parseInt(obsX) === x && parseInt(obsY) === y) {
+                // Don't remove buildings or water with axe/magic_fire
+                if (obsType === 'building' || obsType === 'water') continue;
+                
+                newObstacles.delete(obs);
+                removedAny = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (removedAny) {
+          setObstacles(newObstacles);
+          onObstacleRemoved();
+          
+          // Show feedback
+          setFeedbackMessage(activeReward === 'axe' ? 'Chopped down obstacles!' : 'Burned through obstacles!');
+          setFeedbackType('success');
+          setTimeout(() => {
+            setFeedbackMessage(null);
+            setFeedbackType(null);
+          }, 1500);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeReward, playerPos, obstacles, onObstacleRemoved]);
 
 
   // Preload terrain images
@@ -97,15 +169,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
   }, [terrainImages]);
 
   // --- COLLISION ---
-  const isWalkable = (x: number, y: number) => {
+  const isWalkable = useCallback((x: number, y: number) => {
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return false;
-    for (const obs of OBSTACLES_SET) {
+    for (const obs of obstacles) {
       if (obs.startsWith(`${x},${y},`)) {
         return false;
       }
     }
     return true;
-  };
+  }, [obstacles]);
 
   // --- INTERACTION ---
   const getClosestScenario = useCallback((px: number, py: number) => {
@@ -276,26 +348,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
   return (
     <div className="relative w-full h-full bg-[#3E2723] overflow-hidden" ref={containerRef}>
 
-      {/* --- WOODEN HUD --- */}
+    {/* --- WOODEN HUD --- */}
+    {!(showDialogue || feedbackMessage) && !activeScenario && (
       <div className="absolute top-4 left-4 right-4 h-16 bg-[#8B5A2B] border-4 border-[#5D4037] rounded-lg shadow-lg z-[100] flex justify-between px-6 py-2 font-pixel text-[#F4E4BC] items-center wooden-pattern">
-        <div className="flex gap-8 items-center">
-          <div className="flex flex-col">
-            <span className="text-[#C19A6B] text-[10px]">LIVES</span>
-            <span className="text-xl drop-shadow-md">
-              {Array(Math.max(0, lives)).fill('❤️').join('')}
-              {Array(Math.max(0, 3 - lives)).fill('🖤').join('')}
-            </span>
+          <div className="flex gap-8 items-center">
+            <div className="flex flex-col">
+              <span className="text-[#C19A6B] text-[10px]">LIVES</span>
+              <span className="text-xl drop-shadow-md">
+                {Array(Math.max(0, lives)).fill('❤️').join('')}
+                {Array(Math.max(0, 3 - lives)).fill('🖤').join('')}
+              </span>
+            </div>
+            {/* <div className="flex flex-col">
+              <span className="text-[#C19A6B] text-[10px]">SCORE</span>
+              <span className="text-xl drop-shadow-md">{score.toString().padStart(6, '0')}</span>
+            </div> */}
           </div>
-          <div className="flex flex-col">
-            <span className="text-[#C19A6B] text-[10px]">SCORE</span>
-            <span className="text-xl drop-shadow-md">{score.toString().padStart(6, '0')}</span>
+          <div className="flex gap-2 items-center bg-[#5D4037] px-4 py-1 rounded shadow-inner">
+            <img src={SPRITES.coin} className="w-4 h-4" alt="coin" />
+            <span className="text-xl">{coins}</span>
           </div>
         </div>
-        <div className="flex gap-2 items-center bg-[#5D4037] px-4 py-1 rounded shadow-inner">
-          <img src={SPRITES.coin} className="w-4 h-4" alt="coin" />
-          <span className="text-xl">{coins}</span>
-        </div>
-      </div>
+    )}
 
       {/* --- WORLD --- */}
       <div
@@ -375,7 +449,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
               <div className="bg-[#F4E4BC] border-2 border-[#333] p-2 rounded shadow-md mb-2 w-48">
                 <div className="flex justify-between text-xs font-bold text-[#333]">
                   <span>{activeScenario.npc_type}</span>
-                  <span>Lv5</span>
+                  {/* <span>Lv5</span> */}
                 </div>
                 <div className="w-full h-2 bg-[#333] rounded-full mt-1 overflow-hidden">
                   <div className="h-full bg-green-500 w-full"></div>

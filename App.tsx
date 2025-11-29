@@ -1,8 +1,8 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { analyzeSafetyScenario, generateRewardCard } from './services/geminiService';
-import { GameScenario, AppStatus, CollectedCard } from './types';
-import { PREBUILT_SCENARIOS } from './constants';
+import { GameScenario, AppStatus, CollectedCard, RewardType } from './types';
+import { PREBUILT_SCENARIOS, MAP_WIDTH, MAP_HEIGHT } from './constants';
 import GameCanvas from './components/GameCanvas';
 import RewardCard from './components/RewardCard';
 import Sidebar from './components/Sidebar';
@@ -17,11 +17,145 @@ const App: React.FC = () => {
   const [coins, setCoins] = useState(0);
 
   // Modal states
-  const [activeCardData, setActiveCardData] = useState<{ imageUrl: string; result: 'success' | 'fail' } | null>(null);
+  const [activeCardData, setActiveCardData] = useState<{ 
+    imageUrl: string; 
+    result: 'success' | 'fail'; 
+    rewardType?: string;
+  } | null>(null);
   const [viewingCard, setViewingCard] = useState<CollectedCard | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [activeReward, setActiveReward] = useState<RewardType | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle using a reward from a card
+  const handleUseReward = (cardId: string) => {
+    console.log('handleUseReward called with cardId:', cardId);
+    
+    setCollectedCards(prevCards => {
+      return prevCards.map(card => {
+        if (card.id === cardId && card.reward) {
+          console.log('Found card with reward:', card);
+          
+          // For all rewards, set it as active first
+          setActiveReward(card.reward.type);
+          console.log('Set active reward to:', card.reward.type);
+          
+          // If the reward has limited uses, decrement it
+          if (card.reward.uses !== undefined) {
+            const newUses = card.reward.uses - 1;
+            console.log('Decrementing uses from', card.reward.uses, 'to', newUses);
+            
+            if (newUses <= 0) {
+              // If no uses left, remove the reward
+              console.log('No uses left, removing reward');
+              const { reward, ...cardWithoutReward } = card;
+              return cardWithoutReward;
+            }
+            
+            // Otherwise, decrement the uses
+            const updatedCard = {
+              ...card,
+              reward: {
+                ...card.reward,
+                uses: newUses
+              }
+            };
+            console.log('Updated card with new uses:', updatedCard);
+            return updatedCard;
+          }
+          
+          // For unlimited use rewards, just return the card as is
+          return card;
+        }
+        return card;
+      });
+    });
+  };
+
+  // Function to remove obstacles around the player
+  const removeObstaclesAroundPlayer = (radius: number) => {
+    // This will be called from GameCanvas to remove obstacles
+    return (playerX: number, playerY: number, obstacles: Set<string>) => {
+      const newObstacles = new Set(obstacles);
+      let removedAny = false;
+      
+      // Check all tiles in a square around the player
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          const x = playerX + dx;
+          const y = playerY + dy;
+          
+          // Skip if out of bounds
+          if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) continue;
+          
+          // Check each obstacle at this position
+          for (const obs of obstacles) {
+            const [obsX, obsY] = obs.split(',').map(Number);
+            if (obsX === x && obsY === y) {
+              // Don't remove buildings or water with axe/magic_fire
+              const obsType = obs.split(',')[2];
+              if (obsType === 'building' || obsType === 'water') continue;
+              
+              newObstacles.delete(obs);
+              removedAny = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      return { newObstacles, removedAny };
+    };
+  };
+
+  // Handle keyboard events for using active items
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && activeReward) {
+        e.preventDefault(); // Prevent scrolling the page
+        
+        // Apply reward effects based on the reward type
+        switch(activeReward) {
+          case 'heart':
+            setLives(prev => Math.min(5, prev + 1)); // Max 5 lives
+            alert('Used Heart! Gained 1 extra life!');
+            break;
+            
+          case 'coin':
+            setCoins(prev => prev + 10);
+            alert('Used Coin Bag! Gained 10 coins!');
+            break;
+            
+          case 'axe':
+            // Axe can remove trees and rocks in a small radius
+            const axeRemover = removeObstaclesAroundPlayer(1); // 1 tile radius
+            // This will be handled by the GameCanvas component
+            setActiveReward('axe'); // Keep it active for the GameCanvas to handle
+            return; // Don't clear the active reward yet
+            
+          case 'magic_fire':
+            // Magic fire can remove more obstacles in a larger radius
+            const fireRemover = removeObstaclesAroundPlayer(2); // 2 tile radius
+            // This will be handled by the GameCanvas component
+            setActiveReward('magic_fire'); // Keep it active for the GameCanvas to handle
+            return; // Don't clear the active reward yet
+            
+          case 'ship':
+            // Ship can be used to cross water
+            alert('Used Ship! You can now cross water tiles!');
+            // This could be implemented by temporarily allowing water walking
+            break;
+        }
+        
+        // Clear the active reward after use (except for tools that need targeting)
+        setActiveReward(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeReward]);
 
   // Score Calculation
   const score = useMemo(() => {
@@ -37,45 +171,7 @@ const App: React.FC = () => {
     setStatus(AppStatus.PLAYING);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setStatus(AppStatus.ANALYZING);
-    setErrorMsg(null);
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const base64String = (reader.result as string).split(',')[1];
-        const generatedScenario = await analyzeSafetyScenario(base64String, file.type);
-
-        const scenarioWithPos = {
-          ...generatedScenario,
-          position: { x: 25, y: 15 }, // Center
-          skin: 'wolf' as const
-        };
-
-        setScenarios([scenarioWithPos]);
-        setScenarios([scenarioWithPos]);
-        setCompletedIds(new Set());
-        setCollectedCards([]);
-        setScenarios([scenarioWithPos]);
-        setCompletedIds(new Set());
-        setCollectedCards([]);
-        setLives(2);
-        setCoins(0);
-        setStatus(AppStatus.PLAYING);
-      } catch (err) {
-        console.error(err);
-        setErrorMsg("Failed to analyze image. Please try a clear photo of a child and animal.");
-        setStatus(AppStatus.ERROR);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleScenarioFinish = async (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario) => {
+  const handleScenarioFinish = async (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario, selectedOptionText?: string) => {
     // 1. Mark as completed immediately to hide from map
     const newCompleted = new Set(completedIds);
     newCompleted.add(scenario.scenario_id);
@@ -88,7 +184,13 @@ const App: React.FC = () => {
       const imageUrl = await generateRewardCard(fullPrompt);
 
       // 3. Show Result Modal
-      setActiveCardData({ imageUrl, result });
+      // Get the reward type from the scenario if available
+      const rewardType = scenario.reward?.type;
+      setActiveCardData({ 
+        imageUrl, 
+        result,
+        rewardType
+      });
       setStatus(AppStatus.SHOW_RESULT);
 
       // 4. Add to collection (Success or Fail)
@@ -98,9 +200,22 @@ const App: React.FC = () => {
         title: scenario.npc_type, // Use object name as title
         imageUrl: imageUrl,
         timestamp: Date.now(),
-        type: result === 'success' ? 'good' : 'bad'
+        type: result === 'success' ? 'good' : 'bad',
+        selectedAnswer: selectedOptionText,
+        explanation: result === 'fail' ? scenario.dialogue_fail : undefined,
+        reward: result === 'success' && scenario.reward ? {
+          type: scenario.reward.type,
+          description: scenario.reward.description || `A ${scenario.reward.type.replace('_', ' ')} reward`,
+          uses: scenario.reward.uses ?? 1
+        } : undefined
       };
-      setCollectedCards(prev => [newCard, ...prev]);
+      
+      console.log('Creating new card with reward:', newCard.reward);
+      setCollectedCards(prev => {
+        const newCards = [newCard, ...prev];
+        console.log('Updated cards:', newCards);
+        return newCards;
+      });
 
       if (result === 'fail') {
         setLives(prev => Math.max(0, prev - 1));
@@ -116,7 +231,11 @@ const App: React.FC = () => {
   // Continues the game without resetting
   const handleCollectAndContinue = () => {
     setActiveCardData(null);
-    setStatus(AppStatus.PLAYING);
+    setActiveReward(null);
+    // Add a small delay to ensure the modal is fully closed before re-enabling controls
+    setTimeout(() => {
+      setStatus(AppStatus.PLAYING);
+    }, 50);
   };
 
   const quitToMenu = () => {
@@ -126,6 +245,7 @@ const App: React.FC = () => {
     setCollectedCards([]);
     setLives(2);
     setCoins(0);
+    setActiveReward(null);
     setActiveCardData(null);
     setErrorMsg(null);
     if (fileInputRef.current) {
@@ -159,17 +279,6 @@ const App: React.FC = () => {
                   <h3 className="font-pixel text-yellow-400 text-lg mb-2">START ADVENTURE</h3>
                   <p className="font-retro text-blue-200">Play campaign mode with Wizards, Robots & Archers.</p>
                 </button>
-                {/* <div className="relative group p-6 bg-stone-800 rounded border-4 border-stone-600 shadow-xl hover:bg-stone-700 transition-all">
-                  <div className="absolute top-0 right-0 p-4 opacity-30 group-hover:opacity-100 text-4xl">📷</div>
-                  <h3 className="font-pixel text-white text-lg mb-2">SCAN PHOTO</h3>
-                  <p className="font-retro text-stone-400 mb-4">Analyze a real photo to generate a level.</p>
-                  <label className="block w-full cursor-pointer">
-                    <div className="py-3 px-4 bg-black border-2 border-dashed border-stone-500 rounded text-center font-pixel text-xs text-stone-400 hover:text-white hover:border-white transition-colors">
-                      [SELECT IMAGE FILE]
-                    </div>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
-                  </label>
-                </div> */}
               </div>
             </>
           )}
@@ -198,22 +307,24 @@ const App: React.FC = () => {
         <>
           {/* LEFT: GAME CANVAS */}
           <div className="flex-1 relative h-full min-w-0">
-            <button
-              onClick={quitToMenu}
-              className="absolute top-20 right-4 z-50 px-4 py-2 bg-red-900/80 hover:bg-red-800 text-white font-pixel text-[10px] border border-red-500 rounded shadow-lg"
-            >
-              QUIT
-            </button>
 
+            // In App.tsx, update the GameCanvas component to pass setStatus
             <GameCanvas
               scenarios={scenarios}
               completedIds={completedIds}
-              onFinish={handleScenarioFinish}
               score={score}
               lives={lives}
               setLives={setLives}
               coins={coins}
               setCoins={setCoins}
+              onFinish={handleScenarioFinish}
+              activeReward={activeReward}
+              onObstacleRemoved={() => {
+                // Clear the active reward after obstacle is removed
+                setActiveReward(null);
+              }}
+              status={status}
+              setStatus={setStatus}
             />
 
             {/* OVERLAY: GENERATING */}
@@ -235,11 +346,24 @@ const App: React.FC = () => {
             {/* OVERLAY: REWARD CARD MODAL */}
             {status === AppStatus.SHOW_RESULT && activeCardData && (
               <div className="absolute inset-0 z-[70]">
-                <RewardCard
-                  imageUrl={activeCardData.imageUrl}
-                  result={activeCardData.result}
-                  onCollect={handleCollectAndContinue}
-                />
+                {activeCardData && (
+                  <RewardCard
+                    imageUrl={activeCardData.imageUrl}
+                    result={activeCardData.result}
+                    rewardType={activeCardData.rewardType}
+                    onCollect={handleCollectAndContinue}
+                    onDontCollect={handleCollectAndContinue} // Same handler for now, but you can customize this
+                    onUseReward={activeCardData.rewardType ? () => {
+                      setActiveReward(activeCardData.rewardType as RewardType);
+                      handleCollectAndContinue();
+                    } : undefined}
+                  />
+                )}
+                {activeReward && (
+                  <div className="fixed bottom-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+                    Active Item: {activeReward.replace('_', ' ')} (Press SPACE to use)
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -256,7 +380,29 @@ const App: React.FC = () => {
             <CardDetailModal
               card={viewingCard}
               onClose={() => setViewingCard(null)}
+              onUseReward={handleUseReward}
             />
+          )}
+
+          {/* Active Reward Indicator */}
+          {activeReward && (
+            <div className="fixed bottom-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
+              <span className="text-xl">
+                {activeReward === 'heart' && '❤️'}
+                {activeReward === 'coin' && '🪙'}
+                {activeReward === 'axe' && '🪓'}
+                {activeReward === 'ship' && '⛵'}
+                {activeReward === 'magic_fire' && '🔥'}
+              </span>
+              <span>Active: {activeReward.replace('_', ' ')}</span>
+              <span className="text-xs">(Press SPACE to use)</span>
+              <button 
+                onClick={() => setActiveReward(null)}
+                className="ml-2 text-xs bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+              >
+                Clear
+              </button>
+            </div>
           )}
         </>
       )}

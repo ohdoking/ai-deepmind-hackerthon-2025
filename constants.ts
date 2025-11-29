@@ -72,7 +72,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Smart move! Not all pretty berries are safe to eat.",
-    dialogue_fail: "Oh no! Wild berries can be dangerous if you don't know what they are."
+    dialogue_fail: "Oh no! Wild berries can be dangerous if you don't know what they are.",
+    reward: {
+      type: "magic_fire",
+      description: "A magical fire that allows you to burn obstacles.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_cat_roof",
@@ -94,7 +99,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Perfect! Climbing high places is dangerous without safety gear.",
-    dialogue_fail: "Too risky! You could fall and get hurt."
+    dialogue_fail: "Too risky! You could fall and get hurt.",
+    reward: {
+      type: "axe",
+      description: "An axe that allows you to cut down trees.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_wolf_forest",
@@ -116,7 +126,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Correct. Running can trigger a chase instinct. Slow is safe.",
-    dialogue_fail: "Never run! It makes you look like prey."
+    dialogue_fail: "Never run! It makes you look like prey.",
+    reward: {
+      type: "axe",
+      description: "An axe that allows you to cut down trees.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_dog_park",
@@ -138,7 +153,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Always ask! Even cute dogs can bite if they are scared.",
-    dialogue_fail: "Dangerous! You should never touch a strange dog without permission."
+    dialogue_fail: "Dangerous! You should never touch a strange dog without permission.",
+    reward: {
+      type: "axe",
+      description: "An axe that allows you to cut down trees.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_parking_lot",
@@ -160,7 +180,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Good job! Drivers can't see you if you are small and under the car.",
-    dialogue_fail: "Stop! The car might move and you could get hurt."
+    dialogue_fail: "Stop! The car might move and you could get hurt.",
+    reward: {
+      type: "ship",
+      description: "A magical ship that allows you to cross water.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_wet_hands",
@@ -182,7 +207,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Safety first! Water and electricity do not mix.",
-    dialogue_fail: "ZAP! Never touch electricity with wet hands!"
+    dialogue_fail: "ZAP! Never touch electricity with wet hands!",
+    reward: {
+      type: "magic_fire",
+      description: "A magical fire that allows you to burn obstacles.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_cliff_edge",
@@ -204,7 +234,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Smart! Edges can be slippery or crumble. Stay back.",
-    dialogue_fail: "Too close! One slip and you could fall."
+      dialogue_fail: "Too close! One slip and you could fall.",
+      reward: {
+        type: "magic_fire",
+        description: "A magical fire that allows you to burn obstacles.",
+        uses: 1
+      }
   },
   {
     scenario_id: "sc_hot_pot",
@@ -226,7 +261,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Patience is key! Hot things can burn you badly.",
-    dialogue_fail: "Ouch! You could pull the hot pot down on yourself."
+    dialogue_fail: "Ouch! You could pull the hot pot down on yourself.",
+    reward: {
+      type: "magic_fire",
+      description: "A magical fire that allows you to burn obstacles.",
+      uses: 1
+    }
   },
   {
     scenario_id: "sc_toxic_plant",
@@ -248,7 +288,12 @@ export const PREBUILT_SCENARIOS: GameScenario[] = [
       }
     ],
     dialogue_success: "Correct! Never eat wild plants unless you are 100% sure.",
-    dialogue_fail: "No! Many plants are poisonous and can make you very sick."
+    dialogue_fail: "No! Many plants are poisonous and can make you very sick.",
+    reward: {
+      type: "heart",
+      description: "A magical heart that allows you to heal obstacles.",
+      uses: 1
+    }
   }
 ];
 

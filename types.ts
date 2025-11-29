@@ -7,6 +7,14 @@ export interface ScenarioOption {
 
 export type CharacterSkin = 'witch' | 'fox' | 'cat' | 'wolf' | 'cottage' | 'pine_tree' | 'coin' | 'water' | 'rock';
 
+export type RewardType = 'ship' | 'axe' | 'magic_fire' | 'coin' | 'heart';
+
+export interface Reward {
+  type: RewardType;
+  description: string;
+  uses?: number; // Optional: number of uses for the reward
+}
+
 export interface GameScenario {
   scenario_id: string;
   npc_type: string;
@@ -17,6 +25,7 @@ export interface GameScenario {
   options: ScenarioOption[];
   dialogue_success: string;
   dialogue_fail: string;
+  reward?: Reward;  // Optional reward for completing the scenario
 }
 
 export interface CollectedCard {
@@ -26,6 +35,19 @@ export interface CollectedCard {
   imageUrl: string;
   timestamp: number;
   type: 'good' | 'bad';
+  selectedAnswer?: string;
+  explanation?: string;
+  reward?: Reward;
+}
+
+export enum AppStatus {
+  IDLE = 'IDLE',
+  PLAYING = 'PLAYING',
+  SHOW_RESULT = 'SHOW_RESULT',
+  GENERATING_REWARD = 'GENERATING_REWARD',
+  ANALYZING = 'ANALYZING',
+  ERROR = 'ERROR',
+  BATTLE = 'BATTLE'
 }
 
 export interface GameState {
@@ -37,14 +59,6 @@ export interface GameState {
   cardImageUrl?: string;
 }
 
-export enum AppStatus {
-  IDLE = 'IDLE',
-  ANALYZING = 'ANALYZING',
-  PLAYING = 'PLAYING',
-  GENERATING_REWARD = 'GENERATING_REWARD',
-  SHOW_RESULT = 'SHOW_RESULT',
-  ERROR = 'ERROR'
-}
 
 export type ObstacleType = 'tree' | 'water' | 'rock' | 'building';
 
