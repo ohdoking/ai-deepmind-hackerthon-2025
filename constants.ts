@@ -7,163 +7,188 @@ export const MAP_HEIGHT = 30;
 
 export const INITIAL_PLAYER_POS = { x: 25, y: 15 };
 
-// --- 16-BIT PALETTE ---
+// --- CUTE VILLAGE PALETTE ---
 export const PALETTE = {
-  GRASS_LIGHT: '#63c74d',  // Vibrant Green
-  GRASS_DARK: '#3e8948',   // Shadow Green
-  PAVE_LIGHT: '#9badb7',   // Light Grey Blue
-  PAVE_DARK: '#757161',    // Darker Grey
-  WATER: '#30e0ff',        // Cyan
-  WATER_DARK: '#0099db'    // Deep Blue
+  GRASS: '#8CD6A3',       // Mint Green
+  GRASS_SHADOW: '#76C28E', // Darker Mint
+  PATH: '#E8D5B5',        // Beige Dirt
+  PATH_SHADOW: '#D6C09E', // Darker Dirt
+  WATER: '#A2D9E8',       // Pastel Blue
+  WOOD_LIGHT: '#C19A6B',  // Light Wood
+  WOOD_DARK: '#8B5A2B',   // Dark Wood
+  UI_BG: '#F4E4BC'        // Cream Paper
 };
 
-// --- ASSETS (Pixel Art SVGs) ---
+// --- ASSETS (Cute Pixel SVGs) ---
 export const SPRITES = {
-  kid: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23f1c40f" d="M5 1h6v3H5z"/><path fill="%23e67e22" d="M5 2h1v1H5zm5 0h1v1h-1z"/><path fill="%23f39c12" d="M4 4h8v2H4z"/><path fill="%23e74c3c" d="M5 6h6v5H5z"/><path fill="%232c3e50" d="M6 11h1v3H6zm3 0h1v3H9z"/><path fill="%23f1c40f" d="M4 7h1v2H4zm11 0h1v2h-1z"/><path fill="%23ecf0f1" d="M7 7h2v2H7z"/></svg>`,
+  // TERRAIN TEXTURES
+  grass_tile: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="%238CD6A3"/><rect x="2" y="3" width="1" height="1" fill="%2376C28E"/><rect x="12" y="10" width="1" height="1" fill="%2376C28E"/><rect x="5" y="12" width="1" height="2" fill="%2376C28E"/><rect x="9" y="4" width="2" height="1" fill="%2376C28E"/><rect x="1" y="14" width="1" height="1" fill="%23A5E6BA"/><rect x="14" y="2" width="1" height="1" fill="%23A5E6BA"/><circle cx="4" cy="4" r="1" fill="%23F4E4BC" opacity="0.5"/></svg>`,
   
-  knight: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23333" d="M6 2h4v1H6zM5 3h6v1H5zM4 4h2v1h4V4h2v2H4z"/><path fill="%232980b9" d="M4 6h8v6H4z"/><path fill="%23ecf0f1" d="M7 7h2v4H7z"/><path fill="%23f1c40f" d="M4 12h3v2H4zm5 0h3v2H9z"/></svg>`,
-  wizard: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%232c3e50" d="M4 2h8l-1-2H5z"/><path fill="%238e44ad" d="M3 4h10v2H3zM4 6h8v7H4z"/><path fill="%23ecf0f1" d="M6 7h4v2H6zM6 10h4v1H6z"/></svg>`,
-  archer: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%2327ae60" d="M6 2h4v2H6zM4 4h8v2H4z"/><path fill="%23d35400" d="M5 6h6v6H5z"/><path fill="%23f1c40f" d="M4 8h1v4H4zm7 0h1v4h-1z"/></svg>`,
-  mech: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%237f8c8d" d="M5 2h6v3H5zM4 5h8v2H4z"/><path fill="%2395a5a6" d="M4 7h8v6H4z"/><path fill="%233498db" d="M6 3h1v1H6zm3 0h1v1H9z"/><path fill="%23e74c3c" d="M7 8h2v2H7z"/></svg>`,
-  wolf: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%237f8c8d" d="M4 6h2V4h2v2h2v4H4z"/><path fill="%2395a5a6" d="M3 8h2v4H3zm8 0h2v4h-2z"/></svg>`,
-  cat: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23d35400" d="M5 6h2V5h2v1h2v4H5z"/><path fill="%23e67e22" d="M4 8h2v4H4zm6 0h2v4h-2z"/><path fill="%23ecf0f1" d="M6 7h1v1H6zm3 0h1v1H9z"/></svg>`,
-  
-  // New Coin Sprite
-  coin: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23f1c40f" d="M5 2h6v12H5z"/><path fill="%23f39c12" d="M4 3h8v10H4z"/><path fill="%23fff" d="M6 4h2v3H6z"/></svg>`,
+  path_tile: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="%23E8D5B5"/><rect x="1" y="1" width="14" height="14" fill="%23E8D5B5"/><rect x="3" y="2" width="1" height="1" fill="%23D6C09E"/><rect x="10" y="11" width="2" height="1" fill="%23D6C09E"/><rect x="6" y="6" width="1" height="1" fill="%23C19A6B"/><rect x="13" y="4" width="1" height="1" fill="%23D6C09E"/></svg>`,
 
-  // Terrain
-  tree: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%232d3436" d="M7 11h2v4H7z"/><path fill="%2327ae60" d="M5 8h6v3H5zm-1-3h8v3H4zm2-3h4v3H6z"/></svg>`,
-  water: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="%233498db" opacity="0.8"/><path fill="%23ecf0f1" opacity="0.4" d="M2 4h3v1H2zm6 5h4v1H8zm-4 4h2v1H4z"/></svg>`,
-  rock: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%237f8c8d" d="M3 10h10v4H3zM5 7h6v3H5z"/><path fill="%2395a5a6" d="M4 11h2v1H4zm6 0h2v1h-2z"/></svg>`,
-  building: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%2395a5a6" d="M2 4h12v12H2z"/><path fill="%23bdc3c7" d="M4 2h8v2H4z"/><rect x="4" y="6" width="3" height="3" fill="%233498db"/><rect x="9" y="6" width="3" height="3" fill="%233498db"/><rect x="4" y="11" width="3" height="3" fill="%233498db"/><rect x="9" y="11" width="3" height="3" fill="%233498db"/></svg>`
+  water_tile: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="%23A2D9E8"/><rect x="2" y="4" width="3" height="1" fill="%23FFFFFF" opacity="0.4"/><rect x="9" y="10" width="4" height="1" fill="%23FFFFFF" opacity="0.4"/></svg>`,
+
+  // Player: Little Witch (Updated to match reference more closely)
+  witch: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%233E2723" d="M3 5h10v2H3zM5 2h6v3H5z"/><path fill="%238CD6A3" d="M4 7h8v6H4z"/><path fill="%235D4037" d="M5 13h2v2H5zm4 0h2v2H9z"/><path fill="%23FFCC80" d="M6 8h4v3H6z"/><path fill="%233E2723" d="M2 5h1v1H2zm11 0h1v1h-1z"/></svg>`,
+  
+  // NPCs
+  fox: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23E67E22" d="M4 6h3l-1-2H5L4 6zm5 0h3l1-2h-1l-1 2zM4 6h8v5H4z"/><path fill="%23FFF" d="M6 9h4v2H6z"/><path fill="%23333" d="M5 7h1v1H5zm5 0h1v1h-1z"/></svg>`,
+  cat: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23333" d="M5 5h2l-1-2H5zM9 5h2l1-2h-1zM5 5h6v6H5z"/><path fill="%23FFF" d="M6 7h1v1H6zm3 0h1v1H9z"/></svg>`,
+  wolf: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%237F8C8D" d="M4 5h3l-1-2H4zm5 0h3l1-2h-2zM4 5h8v6H4z"/><path fill="%23ECF0F1" d="M6 9h4v2H6z"/><path fill="%23C0392B" d="M5 7h1v1H5zm5 0h1v1h-1z"/></svg>`,
+  
+  // Objects / Environment
+  cottage: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%235D4037" d="M8 1l-7 7h14z"/><path fill="%238D6E63" d="M2 8h12v8H2z"/><rect x="6" y="11" width="4" height="5" fill="%234E342E"/><rect x="3" y="10" width="2" height="2" fill="%2387CEEB"/><rect x="11" y="10" width="2" height="2" fill="%2387CEEB"/></svg>`,
+  pine_tree: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%235D4037" d="M7 12h2v4H7z"/><path fill="%232E7D32" d="M3 10h10l-2-3h1l-4-5-4 5h1z"/><path fill="%231B5E20" d="M4 11h8l-1-2h-6z"/></svg>`,
+  rock: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%2395A5A6" d="M4 10h8v4H4zM6 8h4v2H6z"/></svg>`,
+  coin: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><circle cx="8" cy="8" r="6" fill="%23F1C40F"/><path fill="%23FFF" d="M6 6h2v4H6z"/></svg>`,
 };
 
 export const PREBUILT_SCENARIOS: GameScenario[] = [
   {
-    scenario_id: "sc_wizard_01",
-    npc_type: "Wise Wizard",
-    skin: "wizard",
-    position: { x: 35, y: 10 }, 
+    scenario_id: "sc_fox_village",
+    npc_type: "Village Fox",
+    skin: "fox",
+    position: { x: 30, y: 12 }, 
     trigger_area_px: 100,
-    question: "Greetings, young traveler. I have a Sleeping Dragon (Dog) here. It looks peaceful. What should you do?",
+    question: "Hello Witch! I found some berries near the path. They look colorful. Should I eat them?",
     options: [
       {
-        text: "Sneak up and touch its tail.",
+        text: "Eat them immediately!",
         is_correct: false,
-        reward_card_prompt: "A dragon waking up angrily breathing fire, dark warning style"
+        reward_card_prompt: "A sick fox feeling dizzy with colorful poisonous berries, warning style"
       },
       {
-        text: "Leave it alone to sleep.",
+        text: "Ask an adult first.",
         is_correct: true,
-        reward_card_prompt: "A peaceful sleeping dragon in a magical forest, harmonious Art Nouveau"
+        reward_card_prompt: "A wise owl teaching a fox about plants in a sunny forest, Alphonse Mucha style"
       }
     ],
-    dialogue_success: "Wise choice! A sleeping beast should never be startled.",
-    dialogue_fail: "Foolish! Startling a sleeping creature invites danger!"
+    dialogue_success: "Smart move! Not all pretty berries are safe to eat.",
+    dialogue_fail: "Oh no! Wild berries can be dangerous if you don't know what they are."
   },
   {
-    scenario_id: "sc_mech_01",
-    npc_type: "City Bot",
-    skin: "mech",
-    position: { x: 10, y: 15 }, 
+    scenario_id: "sc_cat_roof",
+    npc_type: "Stray Cat",
+    skin: "cat",
+    position: { x: 15, y: 20 }, 
     trigger_area_px: 100,
-    question: "Beep Boop. Service Unit (Service Dog) detected in operation. Human contact protocol required.",
+    question: "Meow. I am stuck on this high roof. Do you want to climb up and help me?",
     options: [
       {
-        text: "Distract it with a toy.",
+        text: "Climb the roof to help.",
         is_correct: false,
-        reward_card_prompt: "A malfunctioning robot causing chaos, warning signs, glitch art style"
+        reward_card_prompt: "A dangerous fall from a roof, broken ladder, warning art style"
       },
       {
-        text: "Ignore and let it work.",
+        text: "Call for help.",
         is_correct: true,
-        reward_card_prompt: "A high-tech city in harmony, robot and human working together, Mucha style"
+        reward_card_prompt: "A firefighter rescuing a cat safely with a crowd cheering, warm colors"
       }
     ],
-    dialogue_success: "Protocol Accepted. Respecting working units ensures safety for all.",
-    dialogue_fail: "Error! Distracting a working unit endangers its user."
+    dialogue_success: "Perfect! Climbing high places is dangerous without safety gear.",
+    dialogue_fail: "Too risky! You could fall and get hurt."
   },
   {
-    scenario_id: "sc_archer_01",
-    npc_type: "Forest Archer",
-    skin: "archer",
-    position: { x: 42, y: 22 }, 
+    scenario_id: "sc_wolf_forest",
+    npc_type: "Guardian Wolf",
+    skin: "wolf",
+    position: { x: 40, y: 8 }, 
     trigger_area_px: 100,
-    question: "Halt! A wild beast is eating its catch nearby. Do you approach?",
+    question: "Grrr... This is my territory. I am growling at you. What do you do?",
     options: [
       {
-        text: "Try to take the food.",
+        text: "Run away screaming.",
         is_correct: false,
-        reward_card_prompt: "A wild wolf snapping aggressively over food, dark forest background"
+        reward_card_prompt: "A wolf chasing a running figure, chaotic and scary style"
       },
       {
-        text: "Keep your distance.",
+        text: "Back away slowly.",
         is_correct: true,
-        reward_card_prompt: "A noble ranger watching nature from afar, golden sunlight through trees"
+        reward_card_prompt: "A brave child slowly retreating showing respect to nature, harmonious art"
       }
     ],
-    dialogue_success: "Correct. Never disturb an animal while it is eating.",
-    dialogue_fail: "Dangerous move! Animals defend their food instinctively."
+    dialogue_success: "Correct. Running can trigger a chase instinct. Slow is safe.",
+    dialogue_fail: "Never run! It makes you look like prey."
   }
 ];
 
+// --- MAP GENERATION: Organic Village ---
 export const MAP_GENERATION = (() => {
   const obstacles = new Set<string>();
   const terrain: TerrainType[][] = Array(MAP_WIDTH).fill(null).map(() => Array(MAP_HEIGHT).fill('grass'));
+  const npcSafeZones: {x: number, y: number}[] = [];
+
+  // Register NPC Locations to keep clear
+  PREBUILT_SCENARIOS.forEach(npc => {
+      if(npc.position) npcSafeZones.push(npc.position);
+  });
+
+  const isNearNPC = (x: number, y: number) => {
+      return npcSafeZones.some(pos => Math.hypot(pos.x - x, pos.y - y) < 4);
+  };
 
   const addObstacle = (x: number, y: number, type: 'tree' | 'water' | 'rock' | 'building') => {
-    if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) {
+    if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT && !isNearNPC(x, y)) {
       obstacles.add(`${x},${y},${type}`);
     }
   };
 
+  // 1. Generate Winding Main Path
+  let pathX = 5;
+  let pathY = 15;
+  for (let i = 0; i < 200; i++) {
+     if(pathX >= 0 && pathX < MAP_WIDTH && pathY >= 0 && pathY < MAP_HEIGHT) {
+         terrain[pathX][pathY] = 'path';
+         // Widen path
+         if(pathX+1 < MAP_WIDTH) terrain[pathX+1][pathY] = 'path';
+         if(pathY+1 < MAP_HEIGHT) terrain[pathX][pathY+1] = 'path';
+     }
+     
+     // Random walk
+     if (Math.random() > 0.5) pathX += 1;
+     else pathY += (Math.random() > 0.5 ? 1 : -1);
+  }
+  
+  // 2. Add Cottages near path
   for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let y = 0; y < MAP_HEIGHT; y++) {
-      if (x < 22) {
-        terrain[x][y] = 'pavement';
-      } else {
-        terrain[x][y] = 'grass';
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+          if (terrain[x][y] === 'grass' && Math.random() > 0.98) {
+              // check if near path
+              let nearPath = false;
+              for(let dx=-2; dx<=2; dx++) {
+                  for(let dy=-2; dy<=2; dy++) {
+                      if(x+dx >=0 && x+dx < MAP_WIDTH && y+dy >= 0 && y+dy < MAP_HEIGHT) {
+                          if (terrain[x+dx][y+dy] === 'path') nearPath = true;
+                      }
+                  }
+              }
+              if (nearPath) addObstacle(x, y, 'building');
+          }
       }
-    }
   }
 
-  // City Generation
-  for (let x = 2; x < 18; x += 5) {
-    for (let y = 3; y < 27; y += 5) {
-      if (Math.random() > 0.4) {
-        addObstacle(x, y, 'building');
-        addObstacle(x + 1, y, 'building');
-        addObstacle(x, y + 1, 'building');
-        addObstacle(x + 1, y + 1, 'building');
-      }
-    }
-  }
-
-  // Nature Generation
-  for (let x = 32; x < 42; x++) {
-    for (let y = 5; y < 15; y++) {
-      if (Math.hypot(x - 37, y - 10) < 4.5) {
-        addObstacle(x, y, 'water');
-      }
-    }
-  }
-
-  for (let i = 0; i < 60; i++) {
-    const x = 30 + Math.floor(Math.random() * 20);
-    const y = Math.floor(Math.random() * MAP_HEIGHT);
-    if (!obstacles.has(`${x},${y},water`)) {
-       addObstacle(x, y, Math.random() > 0.8 ? 'rock' : 'tree');
-    }
-  }
-
-  // Borders
+  // 3. Add Forest (Pine Trees)
   for (let x = 0; x < MAP_WIDTH; x++) {
-    addObstacle(x, 0, x < 22 ? 'building' : 'tree');
-    addObstacle(x, MAP_HEIGHT - 1, x < 22 ? 'building' : 'tree');
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+          if (terrain[x][y] === 'grass' && !obstacles.has(`${x},${y},building`)) {
+              const noise = Math.sin(x * 0.1) + Math.cos(y * 0.1);
+              if (noise > 1) {
+                  addObstacle(x, y, 'tree');
+              } else if (Math.random() > 0.95) {
+                  addObstacle(x, y, 'rock');
+              }
+          }
+      }
   }
-  for (let y = 0; y < MAP_HEIGHT; y++) {
-    addObstacle(0, y, 'building');
-    addObstacle(MAP_WIDTH - 1, y, 'tree');
+  
+  // 4. Border Walls
+  for(let x=0; x<MAP_WIDTH; x++) {
+      addObstacle(x, 0, 'tree');
+      addObstacle(x, MAP_HEIGHT-1, 'tree');
+  }
+  for(let y=0; y<MAP_HEIGHT; y++) {
+      addObstacle(0, y, 'tree');
+      addObstacle(MAP_WIDTH-1, y, 'tree');
   }
 
   return { obstacles, terrain };

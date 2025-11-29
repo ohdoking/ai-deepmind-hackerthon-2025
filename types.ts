@@ -5,7 +5,7 @@ export interface ScenarioOption {
   reward_card_prompt: string;
 }
 
-export type CharacterSkin = 'knight' | 'wizard' | 'archer' | 'mech' | 'wolf' | 'cat' | 'kid';
+export type CharacterSkin = 'witch' | 'fox' | 'cat' | 'wolf' | 'cottage' | 'pine_tree' | 'coin';
 
 export interface GameScenario {
   scenario_id: string;
@@ -53,4 +53,4 @@ export interface Obstacle {
   type: ObstacleType;
 }
 
-export type TerrainType = 'grass' | 'pavement';
+export type TerrainType = 'grass' | 'path' | 'water';

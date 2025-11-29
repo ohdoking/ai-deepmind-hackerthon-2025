@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CollectedCard } from '../types';
 
 interface SidebarProps {
@@ -9,63 +9,61 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collectedCards, remainingCount, onCardClick }) => {
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [collectedCards.length]);
+
   return (
-    <div className="w-80 h-full bg-[#222] border-l-4 border-stone-700 flex flex-col overflow-hidden shadow-2xl relative">
+    <div className="w-80 h-full bg-[#5D4037] border-l-[6px] border-[#3E2723] flex flex-col relative shadow-[inset_10px_0_20px_rgba(0,0,0,0.5)]">
       
-      {/* 16-bit Header */}
-      <div className="p-4 bg-blue-900 border-b-4 border-blue-700 shadow-md z-10">
-        <h2 className="font-pixel text-yellow-400 text-sm mb-1 text-center tracking-widest drop-shadow-md">INVENTORY</h2>
-        <div className="flex justify-between font-retro text-white text-lg px-2 mt-2 bg-blue-950/50 rounded border border-blue-500/30">
-           <span>TARGETS:</span>
-           <span className="text-red-400">{remainingCount}</span>
+      {/* Wooden Header */}
+      <div className="p-6 bg-[#8B5A2B] border-b-[6px] border-[#3E2723] text-center shadow-md z-10 relative wooden-pattern">
+        <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#3E2723] shadow-inner"></div>
+        <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#3E2723] shadow-inner"></div>
+        <h2 className="font-pixel text-[#F4E4BC] text-lg tracking-widest drop-shadow-md">ADVENTURE LOG</h2>
+        <div className="mt-2 bg-[#3E2723] text-[#F4E4BC] font-retro text-xl px-4 py-1 rounded inline-block shadow-inner">
+           TASKS: <span className="text-[#FFCC80]">{remainingCount}</span>
         </div>
       </div>
 
-      {/* Collection List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-stone-900">
+      {/* Paper List Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#F4E4BC] relative">
+         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#8B5A2B_1px,transparent_1px)] [background-size:16px_16px]"></div>
+         
         {collectedCards.length === 0 ? (
-          <div className="text-center mt-10 opacity-50 flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-stone-700 rounded-lg flex items-center justify-center mb-2 bg-stone-800">
-               <span className="text-2xl grayscale">🔒</span>
-            </div>
-            <p className="font-pixel text-[10px] text-stone-500">EMPTY SLOT</p>
+          <div className="text-center mt-10 opacity-50 flex flex-col items-center text-[#5D4037]">
+            <span className="text-4xl mb-2">📜</span>
+            <p className="font-pixel text-xs">NO ENTRIES YET</p>
           </div>
         ) : (
-          collectedCards.map((card) => (
+          collectedCards.map((card, idx) => (
             <div 
               key={card.id} 
               onClick={() => onCardClick(card)}
-              className="relative bg-stone-800 border-2 border-stone-600 p-2 rounded cursor-pointer hover:bg-stone-700 hover:border-yellow-500 hover:-translate-y-1 transition-all group shadow-lg"
+              className="relative bg-[#E8D5B5] border-2 border-[#8B5A2B] p-2 rounded cursor-pointer hover:bg-white hover:border-[#5D4037] hover:-translate-y-1 transition-all shadow-md group transform rotate-1 hover:rotate-0"
             >
+              {idx === 0 && <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-pixel px-2 py-1 rounded-full animate-pulse z-10">NEW!</div>}
+              
               <div className="flex gap-3">
-                <div className="w-16 h-12 bg-black shrink-0 border border-stone-500 overflow-hidden">
-                  <img 
-                    src={card.imageUrl} 
-                    alt={card.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
-                  />
+                <div className="w-14 h-14 bg-[#3E2723] shrink-0 border-2 border-[#8B5A2B] overflow-hidden rounded-sm">
+                  <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
-                  <h3 className="font-pixel text-[10px] text-yellow-500 truncate">{card.title}</h3>
-                  <p className="font-mono text-[9px] text-stone-400 mt-1">
-                    ITEM #{card.id.slice(-3)}
-                  </p>
+                  <h3 className="font-pixel text-[10px] text-[#5D4037] truncate uppercase">{card.title}</h3>
+                  <p className="font-retro text-sm text-[#8B5A2B] mt-1">ENTRY #{card.id.slice(-3)}</p>
                 </div>
-              </div>
-              {/* Selection Indicator */}
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-yellow-400 font-bold text-xs">
-                ▶
               </div>
             </div>
           ))
         )}
+        <div ref={endRef} />
       </div>
 
-      {/* Footer Decoration */}
-      <div className="p-2 bg-stone-800 border-t-4 border-stone-600">
-        <div className="flex justify-center gap-4 text-[8px] text-stone-500 font-pixel">
-          <span>PRESS E TO SELECT</span>
-        </div>
+      {/* Footer */}
+      <div className="p-3 bg-[#5D4037] border-t-[6px] border-[#3E2723] text-center wooden-pattern">
+        <span className="text-[10px] text-[#C19A6B] font-pixel">JOURNAL v1.0</span>
       </div>
     </div>
   );

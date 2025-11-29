@@ -20,26 +20,33 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
   const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   
-  // HUD Animation states
   const [coins, setCoins] = useState(10);
-  const [lives, setLives] = useState(3);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // --- BACKGROUND GENERATION (Canvas for performance) ---
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Generate random coins for decoration
+  // Decorative coins
   const decoCoins = useMemo(() => {
     const coinsArr = [];
-    for(let i=0; i<30; i++) {
+    for(let i=0; i<20; i++) {
         const x = Math.floor(Math.random() * MAP_WIDTH);
         const y = Math.floor(Math.random() * MAP_HEIGHT);
-        if(!OBSTACLES_SET.has(`${x},${y},tree`) && !OBSTACLES_SET.has(`${x},${y},building`)) {
+        if(!OBSTACLES_SET.has(`${x},${y},tree`) && !OBSTACLES_SET.has(`${x},${y},building`) && TERRAIN_MAP[x][y] === 'grass') {
             coinsArr.push({x, y, id: i});
         }
     }
     return coinsArr;
+  }, []);
+
+  // Preload terrain images
+  const terrainImages = useMemo(() => {
+    const grassImg = new Image();
+    grassImg.src = SPRITES.grass_tile;
+    const pathImg = new Image();
+    pathImg.src = SPRITES.path_tile;
+    const waterImg = new Image();
+    waterImg.src = SPRITES.water_tile;
+    return { grass: grassImg, path: pathImg, water: waterImg };
   }, []);
 
   useEffect(() => {
@@ -48,39 +55,37 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw Map Terrain with 16-bit Checkerboard Texture
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      for (let y = 0; y < MAP_HEIGHT; y++) {
-        const type = TERRAIN_MAP[x][y];
-        
-        if (type === 'pavement') {
-          // City Checkerboard
-          ctx.fillStyle = (x + y) % 2 === 0 ? PALETTE.PAVE_LIGHT : PALETTE.PAVE_DARK; 
-        } else {
-          // Nature Checkerboard
-          ctx.fillStyle = (x + y) % 2 === 0 ? PALETTE.GRASS_LIGHT : PALETTE.GRASS_DARK;
-        }
-        
-        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        
-        // Add road markings in city
-        if (type === 'pavement' && x % 5 === 2) {
-           ctx.fillStyle = '#f1c40f';
-           ctx.fillRect(x * TILE_SIZE + (TILE_SIZE/2) - 2, y * TILE_SIZE + 4, 4, TILE_SIZE - 8);
-        }
-        // Add flower dots in nature
-        if (type === 'grass' && Math.random() > 0.95) {
-            ctx.fillStyle = Math.random() > 0.5 ? '#ffeb3b' : '#ff9800';
-            ctx.fillRect(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, 4, 4);
+    // Wait for images to load (basic check)
+    const drawTerrain = () => {
+      // --- DRAW VILLAGE TERRAIN WITH TEXTURES ---
+      for (let x = 0; x < MAP_WIDTH; x++) {
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+          const type = TERRAIN_MAP[x][y];
+          
+          if (type === 'path') {
+            ctx.drawImage(terrainImages.path, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          } else if (type === 'water') {
+            ctx.drawImage(terrainImages.water, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          } else {
+            // Grass
+            ctx.drawImage(terrainImages.grass, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
         }
       }
-    }
-  }, []);
+    };
 
-  // --- COLLISION DETECTION ---
+    if (terrainImages.grass.complete && terrainImages.path.complete) {
+        drawTerrain();
+    } else {
+        terrainImages.grass.onload = drawTerrain;
+        terrainImages.path.onload = drawTerrain;
+    }
+
+  }, [terrainImages]);
+
+  // --- COLLISION ---
   const isWalkable = (x: number, y: number) => {
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return false;
-    
     for (const obs of OBSTACLES_SET) {
       if (obs.startsWith(`${x},${y},`)) {
         return false;
@@ -89,23 +94,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     return true;
   };
 
-  // --- INTERACTION LOGIC ---
+  // --- INTERACTION ---
   const getClosestScenario = useCallback((px: number, py: number) => {
     let closest: GameScenario | null = null;
     let minDistance = Infinity;
 
     scenarios.forEach(sc => {
       if (completedIds.has(sc.scenario_id)) return;
-
       const npcX = sc.position?.x ?? 8;
       const npcY = sc.position?.y ?? 6;
-
-      const dx = px - npcX;
-      const dy = py - npcY;
-      const distPx = Math.hypot(dx * TILE_SIZE, dy * TILE_SIZE);
-      const triggerDist = sc.trigger_area_px > 0 ? sc.trigger_area_px : 100;
-
-      if (distPx < triggerDist && distPx < minDistance) {
+      const distPx = Math.hypot((px - npcX) * TILE_SIZE, (py - npcY) * TILE_SIZE);
+      
+      if (distPx < 100 && distPx < minDistance) {
         minDistance = distPx;
         closest = sc;
       }
@@ -114,7 +114,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     return closest;
   }, [scenarios, completedIds]);
 
-  // --- HANDLE RESIZE ---
+  // --- RESIZE ---
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
@@ -124,88 +124,57 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
         });
       }
     };
-
     window.addEventListener('resize', handleResize);
     handleResize(); 
-
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // --- CAMERA LOGIC ---
+  // --- CAMERA ---
   useEffect(() => {
     if (containerRef.current) {
-      const viewportWidth = containerRef.current.clientWidth;
-      const viewportHeight = containerRef.current.clientHeight;
+      const vW = containerRef.current.clientWidth;
+      const vH = containerRef.current.clientHeight;
 
-      let targetX = -playerPos.x * TILE_SIZE + viewportWidth / 2 - TILE_SIZE / 2;
-      let targetY = -playerPos.y * TILE_SIZE + viewportHeight / 2 - TILE_SIZE / 2;
+      let tX = -playerPos.x * TILE_SIZE + vW / 2 - TILE_SIZE / 2;
+      let tY = -playerPos.y * TILE_SIZE + vH / 2 - TILE_SIZE / 2;
 
-      const mapPixelWidth = MAP_WIDTH * TILE_SIZE;
-      const mapPixelHeight = MAP_HEIGHT * TILE_SIZE;
+      const mapW = MAP_WIDTH * TILE_SIZE;
+      const mapH = MAP_HEIGHT * TILE_SIZE;
 
-      if (mapPixelWidth <= viewportWidth) {
-         targetX = (viewportWidth - mapPixelWidth) / 2;
-      } else {
-         const minX = viewportWidth - mapPixelWidth;
-         targetX = Math.min(0, Math.max(minX, targetX));
-      }
+      if (mapW <= vW) tX = (vW - mapW) / 2;
+      else tX = Math.min(0, Math.max(vW - mapW, tX));
 
-      if (mapPixelHeight <= viewportHeight) {
-        targetY = (viewportHeight - mapPixelHeight) / 2;
-      } else {
-        const minY = viewportHeight - mapPixelHeight;
-        targetY = Math.min(0, Math.max(minY, targetY));
-      }
+      if (mapH <= vH) tY = (vH - mapH) / 2;
+      else tY = Math.min(0, Math.max(vH - mapH, tY));
 
-      setCameraOffset({ x: targetX, y: targetY });
+      setCameraOffset({ x: tX, y: tY });
     }
   }, [playerPos, viewportSize]);
 
-  // --- INPUT HANDLING ---
+  // --- CONTROLS ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (feedbackMessage) return;
-
       if (showDialogue) {
-        if (e.key === 'Escape') {
-          setShowDialogue(false);
-        }
+        if (e.key === 'Escape') setShowDialogue(false);
         return;
       }
 
-      let dx = 0;
-      let dy = 0;
-
+      let dx = 0, dy = 0;
       switch (e.key) {
-        case 'w':
-        case 'ArrowUp': dy = -1; break;
-        case 's':
-        case 'ArrowDown': dy = 1; break;
-        case 'a':
-        case 'ArrowLeft': 
-          dx = -1; 
-          setPlayerDirection('left');
-          break;
-        case 'd':
-        case 'ArrowRight': 
-          dx = 1; 
-          setPlayerDirection('right');
-          break;
-        case 'e':
-        case 'Enter':
-          if (showPrompt && activeScenario) {
-            setShowDialogue(true);
-          }
+        case 'w': case 'ArrowUp': dy = -1; break;
+        case 's': case 'ArrowDown': dy = 1; break;
+        case 'a': case 'ArrowLeft': dx = -1; setPlayerDirection('left'); break;
+        case 'd': case 'ArrowRight': dx = 1; setPlayerDirection('right'); break;
+        case 'e': case 'Enter':
+          if (showPrompt && activeScenario) setShowDialogue(true);
           return;
         default: return;
       }
 
       const nextX = playerPos.x + dx;
       const nextY = playerPos.y + dy;
-
-      if (isWalkable(nextX, nextY)) {
-        setPlayerPos({ x: nextX, y: nextY });
-      }
+      if (isWalkable(nextX, nextY)) setPlayerPos({ x: nextX, y: nextY });
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -216,269 +185,148 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     const closest = getClosestScenario(playerPos.x, playerPos.y);
     setActiveScenario(closest);
     setShowPrompt(!!closest);
-    
-    if (!closest && showDialogue) {
-      setShowDialogue(false);
-    }
+    if (!closest && showDialogue) setShowDialogue(false);
   }, [playerPos, getClosestScenario, showDialogue]);
 
   const handleOptionSelect = (option: ScenarioOption) => {
     if (!activeScenario) return;
-
-    if (option.is_correct) {
-      setFeedbackMessage(activeScenario.dialogue_success);
-      setTimeout(() => {
-        setFeedbackMessage(null);
-        setShowDialogue(false);
-        onFinish('success', option.reward_card_prompt, activeScenario);
-      }, 1500);
-    } else {
-      setFeedbackMessage(activeScenario.dialogue_fail);
-      setTimeout(() => {
-        setFeedbackMessage(null);
-        setShowDialogue(false);
-        onFinish('fail', option.reward_card_prompt, activeScenario);
-      }, 1500);
-    }
+    const isWin = option.is_correct;
+    setFeedbackMessage(isWin ? activeScenario.dialogue_success : activeScenario.dialogue_fail);
+    setTimeout(() => {
+      setFeedbackMessage(null);
+      setShowDialogue(false);
+      onFinish(isWin ? 'success' : 'fail', option.reward_card_prompt, activeScenario);
+    }, 1500);
   };
 
   const renderObstacles = useMemo(() => {
-    const obstacleList = Array.from(OBSTACLES_SET).map(s => {
+    return Array.from(OBSTACLES_SET).map((s, idx) => {
       const [x, y, type] = s.split(',');
-      return { x: parseInt(x), y: parseInt(y), type };
-    });
+      
+      let sprite: string | undefined;
+      // Map 'building' to 'cottage'
+      if (type === 'building') {
+        sprite = SPRITES.cottage;
+      } else if (type === 'tree') {
+        sprite = SPRITES.pine_tree;
+      } else if (type in SPRITES) {
+        // @ts-ignore
+        sprite = SPRITES[type];
+      }
 
-    return obstacleList.map((obs, idx) => (
-      <div
-        key={`obs-${idx}`}
-        className="absolute"
-        style={{
-          width: TILE_SIZE,
-          height: TILE_SIZE,
-          left: obs.x * TILE_SIZE,
-          top: obs.y * TILE_SIZE,
-        }}
-      >
-        <img 
-          src={SPRITES[obs.type as keyof typeof SPRITES]} 
-          alt={obs.type} 
-          className="w-full h-full object-contain" 
-        />
-      </div>
-    ));
+      if (!sprite) return null;
+
+      return (
+        <div
+          key={`obs-${idx}`}
+          className="absolute"
+          style={{ width: TILE_SIZE, height: TILE_SIZE, left: parseInt(x) * TILE_SIZE, top: parseInt(y) * TILE_SIZE }}
+        >
+          <img src={sprite} alt={type} className="w-full h-full object-contain drop-shadow-sm" />
+        </div>
+      );
+    });
   }, []);
 
   return (
-    <div className="relative w-full h-full bg-[#111] overflow-hidden" ref={containerRef}>
+    <div className="relative w-full h-full bg-[#3E2723] overflow-hidden" ref={containerRef}>
       
-      {/* --- HUD (HEADS UP DISPLAY) --- */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/80 to-transparent z-[100] flex justify-between px-6 py-2 font-pixel text-white drop-shadow-[2px_2px_0_#000]">
-         <div className="flex gap-8">
+      {/* --- WOODEN HUD --- */}
+      <div className="absolute top-4 left-4 right-4 h-16 bg-[#8B5A2B] border-4 border-[#5D4037] rounded-lg shadow-lg z-[100] flex justify-between px-6 py-2 font-pixel text-[#F4E4BC] items-center wooden-pattern">
+         <div className="flex gap-8 items-center">
             <div className="flex flex-col">
-               <span className="text-yellow-400 text-[10px] mb-1">LIVES</span>
-               <span className="text-xl">{'❤️'.repeat(lives)}</span>
+               <span className="text-[#C19A6B] text-[10px]">LIVES</span>
+               <span className="text-xl drop-shadow-md">❤️❤️❤️</span>
             </div>
             <div className="flex flex-col">
-               <span className="text-yellow-400 text-[10px] mb-1">SCORE</span>
-               <span className="text-xl">{score.toString().padStart(6, '0')}</span>
+               <span className="text-[#C19A6B] text-[10px]">SCORE</span>
+               <span className="text-xl drop-shadow-md">{score.toString().padStart(6, '0')}</span>
             </div>
          </div>
-         <div className="flex flex-col items-end">
-             <span className="text-yellow-400 text-[10px] mb-1">COINS</span>
-             <div className="flex items-center gap-2">
-                <img src={SPRITES.coin} className="w-4 h-4 animate-bounce" alt="coin" />
-                <span className="text-xl">{coins}</span>
-             </div>
+         <div className="flex gap-2 items-center bg-[#5D4037] px-4 py-1 rounded shadow-inner">
+             <img src={SPRITES.coin} className="w-4 h-4" alt="coin" />
+             <span className="text-xl">{coins}</span>
          </div>
       </div>
 
-      {/* --- WORLD CAMERA CONTAINER --- */}
+      {/* --- WORLD --- */}
       <div 
-        className="relative transition-transform duration-100 ease-linear will-change-transform"
+        className="relative transition-transform duration-100 ease-linear"
         style={{ 
-          width: MAP_WIDTH * TILE_SIZE, 
-          height: MAP_HEIGHT * TILE_SIZE,
+          width: MAP_WIDTH * TILE_SIZE, height: MAP_HEIGHT * TILE_SIZE,
           transform: `translate(${Math.round(cameraOffset.x)}px, ${Math.round(cameraOffset.y)}px)`,
         }}
       >
-        {/* Render Background via Canvas */}
-        <canvas 
-          ref={bgCanvasRef}
-          width={MAP_WIDTH * TILE_SIZE}
-          height={MAP_HEIGHT * TILE_SIZE}
-          className="absolute inset-0 z-0 pixel-art"
-        />
-
-        {/* --- TERRAIN & OBSTACLES --- */}
+        <canvas ref={bgCanvasRef} width={MAP_WIDTH * TILE_SIZE} height={MAP_HEIGHT * TILE_SIZE} className="absolute inset-0 z-0 pixel-art" />
         {renderObstacles}
 
-        {/* --- DECORATIVE COINS --- */}
         {decoCoins.map(c => (
-             <div 
-                key={`coin-${c.id}`}
-                className="absolute w-6 h-6 animate-pulse z-5"
-                style={{ left: c.x * TILE_SIZE + 12, top: c.y * TILE_SIZE + 12 }}
-             >
-                <img src={SPRITES.coin} alt="coin" className="w-full h-full object-contain" />
+             <div key={`coin-${c.id}`} className="absolute w-6 h-6 animate-bounce z-5" style={{ left: c.x * TILE_SIZE + 12, top: c.y * TILE_SIZE + 12 }}>
+                <img src={SPRITES.coin} alt="coin" />
              </div>
         ))}
 
-        {/* --- NPCs --- */}
         {scenarios.map((sc) => {
           if (completedIds.has(sc.scenario_id)) return null;
-          
           const x = sc.position?.x ?? 8;
           const y = sc.position?.y ?? 6;
-          const skin = sc.skin && SPRITES[sc.skin] ? SPRITES[sc.skin] : SPRITES['wolf'];
-
+          // @ts-ignore
+          const skinKey = (sc.skin && sc.skin in SPRITES) ? sc.skin : 'fox';
+          // @ts-ignore
+          const skin = SPRITES[skinKey];
           return (
-            <div key={sc.scenario_id}>
-               <div 
-                className="absolute transition-all duration-300 z-10 hover:scale-110"
-                style={{
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                  left: x * TILE_SIZE,
-                  top: y * TILE_SIZE,
-                }}
-              >
+            <div key={sc.scenario_id} className="absolute transition-all duration-300 z-10 hover:scale-110"
+                style={{ width: TILE_SIZE, height: TILE_SIZE, left: x * TILE_SIZE, top: y * TILE_SIZE }}>
                 <img src={skin} alt="NPC" className="w-full h-full object-contain drop-shadow-md" />
-                {/* Interaction indicator */}
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-300 animate-bounce">!</div>
-              </div>
             </div>
           );
         })}
 
-        {/* --- PLAYER (KID) --- */}
-        <div 
-          className="absolute transition-all duration-200 z-20"
-          style={{
-            width: TILE_SIZE,
-            height: TILE_SIZE,
-            left: playerPos.x * TILE_SIZE,
-            top: playerPos.y * TILE_SIZE,
-            transform: playerDirection === 'left' ? 'scaleX(-1)' : 'none'
-          }}
-        >
-          <img src={SPRITES.kid} alt="Player" className="w-full h-full object-contain drop-shadow-xl" />
+        {/* PLAYER (WITCH) */}
+        <div className="absolute transition-all duration-200 z-20"
+          style={{ width: TILE_SIZE, height: TILE_SIZE, left: playerPos.x * TILE_SIZE, top: playerPos.y * TILE_SIZE, transform: playerDirection === 'left' ? 'scaleX(-1)' : 'none' }}>
+          <img src={SPRITES.witch} alt="Player" className="w-full h-full object-contain drop-shadow-xl" />
         </div>
 
-        {/* Interaction Prompt (Integrated Style) */}
         {showPrompt && !showDialogue && !feedbackMessage && activeScenario && (
-          <div 
-            className="absolute bg-blue-600 text-white font-pixel text-[10px] px-2 py-1 border-2 border-white rounded z-30 pointer-events-none"
-            style={{
-              left: playerPos.x * TILE_SIZE + 8,
-              top: playerPos.y * TILE_SIZE - 20,
-            }}
-          >
+          <div className="absolute bg-[#5D4037] text-[#F4E4BC] font-pixel text-[10px] px-2 py-1 border border-[#C19A6B] rounded z-30 shadow-lg"
+            style={{ left: playerPos.x * TILE_SIZE + 8, top: playerPos.y * TILE_SIZE - 20 }}>
             PRESS E
           </div>
         )}
-
       </div>
 
-      {/* --- HUD: MINI MAP (Retro Style) --- */}
-      <div className="absolute bottom-4 right-4 w-40 h-32 bg-black/90 border-[3px] border-stone-500 z-40 p-1 rounded-sm shadow-xl">
-        <div className="relative w-full h-full bg-[#111]">
-           {/* Mini Map Terrain Colors */}
-           <div className="absolute inset-0 opacity-50 flex">
-              <div className="w-[44%] h-full bg-blue-500/30"></div> 
-              <div className="flex-1 h-full bg-green-500/30"></div> 
-           </div>
-
-           {/* Grid Overlay */}
-           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.1)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
-
-           {/* Mini Player */}
-           <div 
-             className="absolute w-2 h-2 bg-white rounded-sm z-10 border border-black animate-pulse"
-             style={{
-                left: `${(playerPos.x / MAP_WIDTH) * 100}%`,
-                top: `${(playerPos.y / MAP_HEIGHT) * 100}%`
-             }}
-           />
-           {/* Mini NPCs */}
-           {scenarios.map(sc => !completedIds.has(sc.scenario_id) && (
-              <div 
-                key={sc.scenario_id}
-                className="absolute w-2 h-2 bg-red-500 rounded-sm"
-                style={{
-                  left: `${((sc.position?.x || 0) / MAP_WIDTH) * 100}%`,
-                  top: `${((sc.position?.y || 0) / MAP_HEIGHT) * 100}%`
-                }}
-              />
-           ))}
-        </div>
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-stone-700 px-2 text-[8px] text-white font-pixel border border-stone-500">RADAR</div>
-      </div>
-
-      {/* --- HUD: CONTROLS --- */}
-      <div className="absolute bottom-4 left-4 text-white/50 font-pixel text-[10px] z-40 bg-black/40 p-2 rounded border border-white/10">
-        <p>ARROWS / WASD = MOVE</p>
-        <p>E = INTERACT</p>
-        <p>ESC = CANCEL</p>
-      </div>
-
-      {/* --- DIALOGUE MODAL (RPG Style) --- */}
+      {/* --- WOODEN DIALOGUE --- */}
       {(showDialogue || feedbackMessage) && activeScenario && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-3xl z-50 animate-fade-in-up">
-           <div className="bg-gradient-to-b from-blue-900 to-blue-950 border-[4px] border-white text-white p-6 shadow-[0_10px_20px_rgba(0,0,0,0.5)] rounded-lg relative">
-             
-             {/* Character Portrait */}
-             <div className="absolute -top-12 -left-4 w-24 h-24 bg-black border-4 border-white rounded-lg shadow-lg overflow-hidden flex items-center justify-center bg-gradient-to-b from-slate-700 to-slate-900">
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-2xl z-50 animate-fade-in-up">
+           <div className="bg-[#F4E4BC] border-[6px] border-[#8B5A2B] p-6 shadow-2xl rounded-sm relative text-[#3E2723] wooden-pattern">
+             <div className="absolute -top-10 -left-6 w-20 h-20 bg-[#F4E4BC] border-4 border-[#8B5A2B] rounded-full overflow-hidden flex items-center justify-center shadow-lg">
                 <img 
-                  src={activeScenario.skin && SPRITES[activeScenario.skin] ? SPRITES[activeScenario.skin] : SPRITES['wolf']} 
-                  className="w-20 h-20 object-contain"
+                  // @ts-ignore
+                  src={SPRITES[((activeScenario.skin && activeScenario.skin in SPRITES) ? activeScenario.skin : 'fox')]} 
+                  className="w-14 h-14" 
                   alt="Speaker" 
                 />
              </div>
-
-             {/* Header */}
-             <div className="ml-24 mb-4 flex justify-between items-center border-b border-blue-500 pb-2">
-                <span className="font-pixel text-yellow-400 text-sm tracking-widest">{activeScenario.npc_type}</span>
-                {!feedbackMessage && (
-                  <button 
-                    onClick={() => setShowDialogue(false)}
-                    className="text-xs font-pixel text-red-300 hover:text-white"
-                  >
-                    [CLOSE]
-                  </button>
-                )}
+             <div className="ml-16 mb-2 flex justify-between items-center border-b-2 border-[#8B5A2B]/20 pb-1">
+                <span className="font-pixel text-[#8B5A2B] text-sm">{activeScenario.npc_type}</span>
+                {!feedbackMessage && <button onClick={() => setShowDialogue(false)} className="text-xs font-pixel text-red-500 hover:text-red-700">[CLOSE]</button>}
              </div>
-             
-             {/* Message Body */}
-             <div className="font-retro text-2xl leading-tight min-h-[80px]">
-                {feedbackMessage ? feedbackMessage : activeScenario.question}
-             </div>
-
-             {/* Options */}
+             <div className="font-retro text-2xl leading-tight min-h-[60px] drop-shadow-sm">{feedbackMessage || activeScenario.question}</div>
              {!feedbackMessage && (
-                <div className="mt-4 grid grid-cols-1 gap-3">
+                <div className="mt-4 grid grid-cols-1 gap-2">
                   {activeScenario.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleOptionSelect(opt)}
-                      className="text-left px-4 py-3 bg-blue-800/50 border-2 border-transparent hover:border-yellow-400 hover:bg-blue-800 transition-all font-pixel text-xs group"
-                    >
-                      <span className="text-yellow-400 mr-2 opacity-0 group-hover:opacity-100">▶</span>
-                      {opt.text}
+                    <button key={idx} onClick={() => handleOptionSelect(opt)}
+                      className="text-left px-4 py-2 bg-[#E8D5B5] border border-[#C19A6B] hover:bg-[#8B5A2B] hover:text-[#F4E4BC] transition-all font-pixel text-xs rounded shadow-sm">
+                      ▶ {opt.text}
                     </button>
                   ))}
-                </div>
-             )}
-             
-             {/* Saving Indicator */}
-             {feedbackMessage && (
-                <div className="absolute bottom-2 right-4 text-[10px] font-pixel text-yellow-400 animate-pulse">
-                   SAVING...
                 </div>
              )}
            </div>
         </div>
       )}
-
     </div>
   );
 };
