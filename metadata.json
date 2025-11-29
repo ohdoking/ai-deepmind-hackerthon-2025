@@ -1,0 +1,7 @@
+{
+  "name": "Kids Safety Game",
+  "description": "An AI-powered educational game generator that analyzes photos of children and animals to create safety scenarios.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
