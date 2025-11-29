@@ -41,32 +41,21 @@ const App: React.FC = () => {
           setActiveReward(card.reward.type);
           console.log('Set active reward to:', card.reward.type);
           
-          // If the reward has limited uses, decrement it
-          if (card.reward.uses !== undefined) {
-            const newUses = card.reward.uses - 1;
-            console.log('Decrementing uses from', card.reward.uses, 'to', newUses);
-            
-            if (newUses <= 0) {
-              // If no uses left, remove the reward
-              console.log('No uses left, removing reward');
-              const { reward, ...cardWithoutReward } = card;
-              return cardWithoutReward;
-            }
-            
-            // Otherwise, decrement the uses
-            const updatedCard = {
-              ...card,
-              reward: {
-                ...card.reward,
-                uses: newUses
-              }
-            };
-            console.log('Updated card with new uses:', updatedCard);
-            return updatedCard;
-          }
+          // Close the card detail modal
+          setViewingCard(null);
           
-          // For unlimited use rewards, just return the card as is
-          return card;
+          // Mark the reward as used
+          const updatedCard = {
+            ...card,
+            reward: {
+              ...card.reward,
+              used: true,
+              uses: card.reward.uses !== undefined ? Math.max(0, card.reward.uses - 1) : undefined
+            }
+          };
+          
+          console.log('Marked reward as used:', updatedCard);
+          return updatedCard;
         }
         return card;
       });
@@ -123,8 +112,8 @@ const App: React.FC = () => {
             break;
             
           case 'coin':
-            setCoins(prev => prev + 10);
-            alert('Used Coin Bag! Gained 10 coins!');
+            setCoins(prev => prev + 5);
+            alert('Used Coin Bag! Gained 5 coins!');
             break;
             
           case 'axe':
@@ -171,7 +160,7 @@ const App: React.FC = () => {
     setStatus(AppStatus.PLAYING);
   };
 
-  const handleScenarioFinish = async (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario, selectedOptionText?: string) => {
+  const handleScenarioFinish = async (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario) => {
     // 1. Mark as completed immediately to hide from map
     const newCompleted = new Set(completedIds);
     newCompleted.add(scenario.scenario_id);
@@ -201,7 +190,7 @@ const App: React.FC = () => {
         imageUrl: imageUrl,
         timestamp: Date.now(),
         type: result === 'success' ? 'good' : 'bad',
-        selectedAnswer: selectedOptionText,
+        selectedAnswer: scenario.selectedAnswer, // Get the selected answer from the scenario
         explanation: result === 'fail' ? scenario.dialogue_fail : undefined,
         reward: result === 'success' && scenario.reward ? {
           type: scenario.reward.type,

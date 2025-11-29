@@ -11,8 +11,9 @@ export type RewardType = 'ship' | 'axe' | 'magic_fire' | 'coin' | 'heart';
 
 export interface Reward {
   type: RewardType;
-  description: string;
-  uses?: number; // Optional: number of uses for the reward
+  description?: string;
+  uses?: number; // Number of uses remaining, undefined means infinite
+  used?: boolean; // Whether the reward has been used
 }
 
 export interface GameScenario {
@@ -25,6 +26,7 @@ export interface GameScenario {
   options: ScenarioOption[];
   dialogue_success: string;
   dialogue_fail: string;
+  selectedAnswer?: string; // User's selected answer
   reward?: Reward;  // Optional reward for completing the scenario
 }
 

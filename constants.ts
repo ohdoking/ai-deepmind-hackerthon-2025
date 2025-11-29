@@ -49,6 +49,7 @@ export const SPRITES = {
   effect_puff: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23FFF" d="M5 5h6v6H5z"/><rect x="4" y="6" width="1" height="4" fill="%23FFF"/><rect x="11" y="6" width="1" height="4" fill="%23FFF"/><rect x="6" y="4" width="4" height="1" fill="%23FFF"/><rect x="6" y="11" width="4" height="1" fill="%23FFF"/></svg>`,
   effect_heart: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23E91E63" d="M4 5h3v1H4zm5 0h3v1H9zM3 6h10v3H3z"/><rect x="4" y="9" width="8" height="1" fill="%23E91E63"/><rect x="5" y="10" width="6" height="1" fill="%23E91E63"/><rect x="6" y="11" width="4" height="1" fill="%23E91E63"/><rect x="7" y="12" width="2" height="1" fill="%23E91E63"/></svg>`,
   effect_shock: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23FFEB3B" d="M8 2L6 6H2l4 3-2 5 6-4 2 4 2-6h4l-5-3 3-4z"/></svg>`,
+  effect_skull: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="%23FFFFFF" d="M4 3h8v1h1v1h1v2h-1v1h-1v1h1v1h1v2h-1v1h-1v1H5v-1H4v-1H3v-2h1v-1h1v-1H4V7H3V5h1V4h1V3zm1 1v1H6v1H5v1h1v1H5v3h1v1h1v1h4v-1h1v-1h1V8h-1V7h1V6h-1V5h-1V4H9v1H8v1H7V5H6V4z"/><path fill="%23000000" d="M6 6h1v1H6zM9 6h1v1H9z"/><path fill="%23FF0000" d="M7 10h2v1H7z"/></svg>`,
 };
 
 export const PREBUILT_SCENARIOS: GameScenario[] = [

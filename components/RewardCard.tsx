@@ -10,6 +10,7 @@ interface RewardCardProps {
   onClick?: () => void;
   isSelected?: boolean;
   onUseReward?: () => void;
+  used?: boolean;
 }
 
 const RewardCard: React.FC<RewardCardProps> = ({ 
@@ -20,7 +21,8 @@ const RewardCard: React.FC<RewardCardProps> = ({
   rewardType, 
   onClick, 
   isSelected = false,
-  onUseReward 
+  onUseReward,
+  used = false
 }) => {
   const handleUseClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering onClick of parent
@@ -33,7 +35,12 @@ const RewardCard: React.FC<RewardCardProps> = ({
       className={`fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <div className={`max-w-md w-full bg-mucha-cream border-4 ${isSelected ? 'border-blue-500' : 'border-mucha-gold'} p-2 shadow-[0_0_50px_rgba(212,175,55,0.3)] animate-fade-in relative overflow-hidden transition-all duration-200 ${isSelected ? 'scale-105' : ''}`}>
+      <div className={`max-w-md w-full bg-mucha-cream border-4 ${isSelected ? 'border-blue-500' : 'border-mucha-gold'} p-2 shadow-[0_0_50px_rgba(212,175,55,0.3)] animate-fade-in relative overflow-hidden transition-all duration-200 ${isSelected ? 'scale-105' : ''} ${used ? 'opacity-70 grayscale' : ''}`}>
+        {used && (
+          <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center">
+            <span className="bg-red-600 text-white px-4 py-2 rounded font-bold text-lg rotate-12 transform">USED</span>
+          </div>
+        )}
         
         {/* Holographic Sheen Animation */}
         <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 animate-shimmer"></div>

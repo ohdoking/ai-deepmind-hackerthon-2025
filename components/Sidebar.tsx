@@ -139,7 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collectedCards, remainingCount, onCar
 
       {/* Footer */}
       <div className="p-3 bg-[#5D4037] border-t-[6px] border-[#3E2723] text-center wooden-pattern">
-        <span className="text-[10px] text-[#C19A6B] font-pixel">JOURNAL v1.0</span>
+        <span className="text-[10px] text-[#C19A6B] font-pixel">SAFEGUARD CARD COLLECTION v1.0</span>
       </div>
     </div>
   );

@@ -99,22 +99,33 @@ const CardDetailModal: React.FC<CardDetailModalProps> = ({ card, onClose, onUseR
             )}
             <p className="text-sm mt-4 opacity-75">{new Date(card.timestamp).toLocaleString()}</p>
             
-            {card.reward && onUseReward && (
+            {card.reward && (
               <div className="mt-4">
-                <button
-                  onClick={handleUseReward}
-                  disabled={!card.reward || (card.reward.uses !== undefined && card.reward.uses <= 0)}
-                  className={`px-6 py-2 font-pixel text-white rounded-sm border-2 border-white shadow-md
-                    ${!card.reward || (card.reward.uses !== undefined && card.reward.uses <= 0) 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-green-600 hover:bg-green-700 active:bg-green-800'}`}
-                >
-                  {card.reward.uses !== undefined && card.reward.uses <= 0 
-                    ? 'No Uses Remaining' 
-                    : `Use ${card.reward.type.replace('_', ' ')}`}
-                </button>
-                {card.reward.uses !== undefined && card.reward.uses > 0 && (
-                  <p className="text-xs mt-1 text-gray-600">Uses left: {card.reward.uses}</p>
+                {card.reward.used ? (
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-left">
+                    <p className="font-bold text-yellow-700">✓ Used Reward</p>
+                    <p className="text-sm text-yellow-600">This reward has been used</p>
+                  </div>
+                ) : (
+                  onUseReward && (
+                    <div>
+                      <button
+                        onClick={handleUseReward}
+                        disabled={card.reward.uses !== undefined && card.reward.uses <= 0}
+                        className={`px-6 py-2 font-pixel text-white rounded-sm border-2 border-white shadow-md
+                          ${(card.reward.uses !== undefined && card.reward.uses <= 0) 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700 active:bg-green-800'}`}
+                      >
+                        {card.reward.uses !== undefined && card.reward.uses <= 0 
+                          ? 'No Uses Remaining' 
+                          : `Use ${card.reward.type.replace('_', ' ')}`}
+                      </button>
+                      {card.reward.uses !== undefined && card.reward.uses > 0 && (
+                        <p className="text-xs mt-1 text-gray-600">Uses left: {card.reward.uses}</p>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             )}
