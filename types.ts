@@ -5,7 +5,7 @@ export interface ScenarioOption {
   reward_card_prompt: string;
 }
 
-export type CharacterSkin = 'witch' | 'fox' | 'cat' | 'wolf' | 'cottage' | 'pine_tree' | 'coin';
+export type CharacterSkin = 'witch' | 'fox' | 'cat' | 'wolf' | 'cottage' | 'pine_tree' | 'coin' | 'water' | 'rock';
 
 export interface GameScenario {
   scenario_id: string;
@@ -25,6 +25,7 @@ export interface CollectedCard {
   title: string;
   imageUrl: string;
   timestamp: number;
+  type: 'good' | 'bad';
 }
 
 export interface GameState {
@@ -53,4 +54,4 @@ export interface Obstacle {
   type: ObstacleType;
 }
 
-export type TerrainType = 'grass' | 'path' | 'water';
+export type TerrainType = 'grass' | 'path' | 'water' | 'bridge';

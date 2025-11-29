@@ -7,36 +7,44 @@ interface GameCanvasProps {
   scenarios: GameScenario[];
   completedIds: Set<string>;
   score: number;
+  lives: number;
+  setLives: React.Dispatch<React.SetStateAction<number>>;
+  coins: number;
+  setCoins: React.Dispatch<React.SetStateAction<number>>;
   onFinish: (result: 'success' | 'fail', cardPrompt: string, scenario: GameScenario) => void;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score, onFinish }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score, lives, setLives, coins, setCoins, onFinish }) => {
   const [playerPos, setPlayerPos] = useState(INITIAL_PLAYER_POS);
   const [activeScenario, setActiveScenario] = useState<GameScenario | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showDialogue, setShowDialogue] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'success' | 'fail' | null>(null);
   const [playerDirection, setPlayerDirection] = useState<'left' | 'right'>('right');
   const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
-  
-  const [coins, setCoins] = useState(10);
+
+  // Interactive coins
+  const [interactiveCoins, setInteractiveCoins] = useState<{ x: number, y: number, id: number }[]>([]);
+
+  useEffect(() => {
+    const coinsArr = [];
+    for (let i = 0; i < 20; i++) {
+      const x = Math.floor(Math.random() * MAP_WIDTH);
+      const y = Math.floor(Math.random() * MAP_HEIGHT);
+      if (!OBSTACLES_SET.has(`${x},${y},tree`) && !OBSTACLES_SET.has(`${x},${y},building`) && !OBSTACLES_SET.has(`${x},${y},water`) && TERRAIN_MAP[x][y] === 'grass') {
+        coinsArr.push({ x, y, id: i });
+      }
+    }
+    setInteractiveCoins(coinsArr);
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Decorative coins
-  const decoCoins = useMemo(() => {
-    const coinsArr = [];
-    for(let i=0; i<20; i++) {
-        const x = Math.floor(Math.random() * MAP_WIDTH);
-        const y = Math.floor(Math.random() * MAP_HEIGHT);
-        if(!OBSTACLES_SET.has(`${x},${y},tree`) && !OBSTACLES_SET.has(`${x},${y},building`) && TERRAIN_MAP[x][y] === 'grass') {
-            coinsArr.push({x, y, id: i});
-        }
-    }
-    return coinsArr;
-  }, []);
+
 
   // Preload terrain images
   const terrainImages = useMemo(() => {
@@ -46,7 +54,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     pathImg.src = SPRITES.path_tile;
     const waterImg = new Image();
     waterImg.src = SPRITES.water_tile;
-    return { grass: grassImg, path: pathImg, water: waterImg };
+    const bridgeImg = new Image();
+    bridgeImg.src = SPRITES.bridge_tile;
+    return { grass: grassImg, path: pathImg, water: waterImg, bridge: bridgeImg };
   }, []);
 
   useEffect(() => {
@@ -61,11 +71,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
       for (let x = 0; x < MAP_WIDTH; x++) {
         for (let y = 0; y < MAP_HEIGHT; y++) {
           const type = TERRAIN_MAP[x][y];
-          
+
           if (type === 'path') {
             ctx.drawImage(terrainImages.path, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           } else if (type === 'water') {
             ctx.drawImage(terrainImages.water, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          } else if (type === 'bridge') {
+            ctx.drawImage(terrainImages.bridge, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           } else {
             // Grass
             ctx.drawImage(terrainImages.grass, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -75,10 +87,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     };
 
     if (terrainImages.grass.complete && terrainImages.path.complete) {
-        drawTerrain();
+      drawTerrain();
     } else {
-        terrainImages.grass.onload = drawTerrain;
-        terrainImages.path.onload = drawTerrain;
+      terrainImages.grass.onload = drawTerrain;
+      terrainImages.path.onload = drawTerrain;
+      terrainImages.bridge.onload = drawTerrain;
     }
 
   }, [terrainImages]);
@@ -104,7 +117,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
       const npcX = sc.position?.x ?? 8;
       const npcY = sc.position?.y ?? 6;
       const distPx = Math.hypot((px - npcX) * TILE_SIZE, (py - npcY) * TILE_SIZE);
-      
+
       if (distPx < 100 && distPx < minDistance) {
         minDistance = distPx;
         closest = sc;
@@ -125,7 +138,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
       }
     };
     window.addEventListener('resize', handleResize);
-    handleResize(); 
+    handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -167,7 +180,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
         case 'a': case 'ArrowLeft': dx = -1; setPlayerDirection('left'); break;
         case 'd': case 'ArrowRight': dx = 1; setPlayerDirection('right'); break;
         case 'e': case 'Enter':
-          if (showPrompt && activeScenario) setShowDialogue(true);
+          if (showPrompt && activeScenario && !isTransitioning) {
+            setIsTransitioning(true);
+            setTimeout(() => {
+              setIsTransitioning(false);
+              setShowDialogue(true);
+            }, 1500);
+          }
           return;
         default: return;
       }
@@ -179,7 +198,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showDialogue, showPrompt, feedbackMessage, activeScenario, playerPos]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDialogue, showPrompt, feedbackMessage, activeScenario, playerPos, isTransitioning]);
+
+  // Check Coin Collection
+  useEffect(() => {
+    const coinIndex = interactiveCoins.findIndex(c => c.x === playerPos.x && c.y === playerPos.y);
+    if (coinIndex !== -1) {
+      const newCoins = [...interactiveCoins];
+      newCoins.splice(coinIndex, 1);
+      setInteractiveCoins(newCoins);
+      setCoins(prev => {
+        const next = prev + 1;
+        if (next % 10 === 0) {
+          setLives(l => l + 1);
+        }
+        return next;
+      });
+    }
+  }, [playerPos, interactiveCoins, setCoins, setLives]);
 
   useEffect(() => {
     const closest = getClosestScenario(playerPos.x, playerPos.y);
@@ -192,17 +230,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
     if (!activeScenario) return;
     const isWin = option.is_correct;
     setFeedbackMessage(isWin ? activeScenario.dialogue_success : activeScenario.dialogue_fail);
+    setFeedbackType(isWin ? 'success' : 'fail');
     setTimeout(() => {
       setFeedbackMessage(null);
+      setFeedbackType(null);
       setShowDialogue(false);
       onFinish(isWin ? 'success' : 'fail', option.reward_card_prompt, activeScenario);
     }, 1500);
   };
 
+  // --- TRANSITION EFFECT ---
+  const transitionOverlay = isTransitioning ? (
+    <div className="absolute inset-0 z-[200] animate-flash pointer-events-none"></div>
+  ) : null;
+
   const renderObstacles = useMemo(() => {
     return Array.from(OBSTACLES_SET).map((s, idx) => {
       const [x, y, type] = s.split(',');
-      
+
       let sprite: string | undefined;
       // Map 'building' to 'cottage'
       if (type === 'building') {
@@ -230,29 +275,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
 
   return (
     <div className="relative w-full h-full bg-[#3E2723] overflow-hidden" ref={containerRef}>
-      
+
       {/* --- WOODEN HUD --- */}
       <div className="absolute top-4 left-4 right-4 h-16 bg-[#8B5A2B] border-4 border-[#5D4037] rounded-lg shadow-lg z-[100] flex justify-between px-6 py-2 font-pixel text-[#F4E4BC] items-center wooden-pattern">
-         <div className="flex gap-8 items-center">
-            <div className="flex flex-col">
-               <span className="text-[#C19A6B] text-[10px]">LIVES</span>
-               <span className="text-xl drop-shadow-md">❤️❤️❤️</span>
-            </div>
-            <div className="flex flex-col">
-               <span className="text-[#C19A6B] text-[10px]">SCORE</span>
-               <span className="text-xl drop-shadow-md">{score.toString().padStart(6, '0')}</span>
-            </div>
-         </div>
-         <div className="flex gap-2 items-center bg-[#5D4037] px-4 py-1 rounded shadow-inner">
-             <img src={SPRITES.coin} className="w-4 h-4" alt="coin" />
-             <span className="text-xl">{coins}</span>
-         </div>
+        <div className="flex gap-8 items-center">
+          <div className="flex flex-col">
+            <span className="text-[#C19A6B] text-[10px]">LIVES</span>
+            <span className="text-xl drop-shadow-md">
+              {Array(Math.max(0, lives)).fill('❤️').join('')}
+              {Array(Math.max(0, 3 - lives)).fill('🖤').join('')}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[#C19A6B] text-[10px]">SCORE</span>
+            <span className="text-xl drop-shadow-md">{score.toString().padStart(6, '0')}</span>
+          </div>
+        </div>
+        <div className="flex gap-2 items-center bg-[#5D4037] px-4 py-1 rounded shadow-inner">
+          <img src={SPRITES.coin} className="w-4 h-4" alt="coin" />
+          <span className="text-xl">{coins}</span>
+        </div>
       </div>
 
       {/* --- WORLD --- */}
-      <div 
+      <div
         className="relative transition-transform duration-100 ease-linear"
-        style={{ 
+        style={{
           width: MAP_WIDTH * TILE_SIZE, height: MAP_HEIGHT * TILE_SIZE,
           transform: `translate(${Math.round(cameraOffset.x)}px, ${Math.round(cameraOffset.y)}px)`,
         }}
@@ -260,10 +308,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
         <canvas ref={bgCanvasRef} width={MAP_WIDTH * TILE_SIZE} height={MAP_HEIGHT * TILE_SIZE} className="absolute inset-0 z-0 pixel-art" />
         {renderObstacles}
 
-        {decoCoins.map(c => (
-             <div key={`coin-${c.id}`} className="absolute w-6 h-6 animate-bounce z-5" style={{ left: c.x * TILE_SIZE + 12, top: c.y * TILE_SIZE + 12 }}>
-                <img src={SPRITES.coin} alt="coin" />
-             </div>
+        {interactiveCoins.map(c => (
+          <div key={`coin-${c.id}`} className="absolute w-6 h-6 animate-bounce z-5" style={{ left: c.x * TILE_SIZE + 12, top: c.y * TILE_SIZE + 12 }}>
+            <img src={SPRITES.coin} alt="coin" />
+          </div>
         ))}
 
         {scenarios.map((sc) => {
@@ -276,9 +324,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
           const skin = SPRITES[skinKey];
           return (
             <div key={sc.scenario_id} className="absolute transition-all duration-300 z-10 hover:scale-110"
-                style={{ width: TILE_SIZE, height: TILE_SIZE, left: x * TILE_SIZE, top: y * TILE_SIZE }}>
-                <img src={skin} alt="NPC" className="w-full h-full object-contain drop-shadow-md" />
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-300 animate-bounce">!</div>
+              style={{ width: TILE_SIZE, height: TILE_SIZE, left: x * TILE_SIZE, top: y * TILE_SIZE }}>
+              <img src={skin} alt="NPC" className="w-full h-full object-contain drop-shadow-md" />
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-300 animate-bounce">!</div>
             </div>
           );
         })}
@@ -295,38 +343,134 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ scenarios, completedIds, score,
             PRESS E
           </div>
         )}
+
+        {/* --- EFFECTS --- */}
+        {isTransitioning && (
+          <div className="absolute z-40 animate-ping" style={{ left: playerPos.x * TILE_SIZE, top: playerPos.y * TILE_SIZE - 24, width: TILE_SIZE, height: TILE_SIZE }}>
+            <img src={SPRITES.effect_sparkle} alt="sparkle" className="w-full h-full object-contain" />
+          </div>
+        )}
+
+        {feedbackType && activeScenario && (
+          <div className="absolute z-50 animate-bounce" style={{
+            left: (activeScenario.position?.x ?? 0) * TILE_SIZE,
+            top: (activeScenario.position?.y ?? 0) * TILE_SIZE - 32,
+            width: TILE_SIZE, height: TILE_SIZE
+          }}>
+            <img src={feedbackType === 'success' ? SPRITES.effect_heart : SPRITES.effect_shock} alt="effect" className="w-full h-full object-contain" />
+          </div>
+        )}
+
       </div>
 
-      {/* --- WOODEN DIALOGUE --- */}
+      {/* --- BATTLE INTERFACE --- */}
       {(showDialogue || feedbackMessage) && activeScenario && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-2xl z-50 animate-fade-in-up">
-           <div className="bg-[#F4E4BC] border-[6px] border-[#8B5A2B] p-6 shadow-2xl rounded-sm relative text-[#3E2723] wooden-pattern">
-             <div className="absolute -top-10 -left-6 w-20 h-20 bg-[#F4E4BC] border-4 border-[#8B5A2B] rounded-full overflow-hidden flex items-center justify-center shadow-lg">
-                <img 
-                  // @ts-ignore
-                  src={SPRITES[((activeScenario.skin && activeScenario.skin in SPRITES) ? activeScenario.skin : 'fox')]} 
-                  className="w-14 h-14" 
-                  alt="Speaker" 
-                />
-             </div>
-             <div className="ml-16 mb-2 flex justify-between items-center border-b-2 border-[#8B5A2B]/20 pb-1">
-                <span className="font-pixel text-[#8B5A2B] text-sm">{activeScenario.npc_type}</span>
-                {!feedbackMessage && <button onClick={() => setShowDialogue(false)} className="text-xs font-pixel text-red-500 hover:text-red-700">[CLOSE]</button>}
-             </div>
-             <div className="font-retro text-2xl leading-tight min-h-[60px] drop-shadow-sm">{feedbackMessage || activeScenario.question}</div>
-             {!feedbackMessage && (
-                <div className="mt-4 grid grid-cols-1 gap-2">
-                  {activeScenario.options.map((opt, idx) => (
-                    <button key={idx} onClick={() => handleOptionSelect(opt)}
-                      className="text-left px-4 py-2 bg-[#E8D5B5] border border-[#C19A6B] hover:bg-[#8B5A2B] hover:text-[#F4E4BC] transition-all font-pixel text-xs rounded shadow-sm">
-                      ▶ {opt.text}
-                    </button>
-                  ))}
+        <div className="absolute inset-0 z-50 flex flex-col font-pixel animate-fade-in">
+
+          {/* BATTLE SCENE (Top 65%) */}
+          <div className="h-[65%] relative bg-gradient-to-b from-[#A2D9E8] to-[#8CD6A3] overflow-hidden border-b-4 border-[#333]">
+
+            {/* OPPONENT (Top Right) */}
+            <div className="absolute top-8 right-8 flex flex-col items-end animate-slide-in-right">
+              <div className="bg-[#F4E4BC] border-2 border-[#333] p-2 rounded shadow-md mb-2 w-48">
+                <div className="flex justify-between text-xs font-bold text-[#333]">
+                  <span>{activeScenario.npc_type}</span>
+                  <span>Lv5</span>
                 </div>
-             )}
-           </div>
+                <div className="w-full h-2 bg-[#333] rounded-full mt-1 overflow-hidden">
+                  <div className="h-full bg-green-500 w-full"></div>
+                </div>
+              </div>
+              <img
+                // @ts-ignore
+                src={SPRITES[((activeScenario.skin && activeScenario.skin in SPRITES) ? activeScenario.skin : 'fox')]}
+                className="w-32 h-32 object-contain drop-shadow-lg"
+                alt="Opponent"
+              />
+            </div>
+
+            {/* PLAYER (Bottom Left) */}
+            <div className="absolute bottom-4 left-8 flex flex-col items-start animate-slide-in-left">
+              <img src={SPRITES.witch} className="w-32 h-32 object-contain drop-shadow-lg mb-2 transform scale-x-[-1]" alt="Player" />
+              <div className="bg-[#F4E4BC] border-2 border-[#333] p-2 rounded shadow-md w-48">
+                <div className="flex justify-between text-xs font-bold text-[#333]">
+                  <span>Witch</span>
+                  <span>Lv{lives}</span>
+                </div>
+                <div className="w-full h-2 bg-[#333] rounded-full mt-1 overflow-hidden">
+                  <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${(lives / 3) * 100}%` }}></div>
+                </div>
+                <div className="text-[10px] text-right mt-1">{lives}/3 HP</div>
+              </div>
+            </div>
+
+            {/* Effects Layer */}
+            {feedbackType && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <img
+                  src={feedbackType === 'success' ? SPRITES.effect_heart : SPRITES.effect_shock}
+                  alt="feedback"
+                  className="w-32 h-32 animate-bounce"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* DIALOGUE BOX (Bottom 35%) */}
+          <div className="h-[35%] bg-[#2C3E50] border-t-4 border-[#F1C40F] p-4 flex gap-4 relative">
+            <div className="flex-1 bg-white border-4 border-[#5D4037] rounded p-4 relative shadow-inner">
+              <p className="font-retro text-lg leading-relaxed text-[#333]">
+                {feedbackMessage || activeScenario.question}
+              </p>
+              {/* Continue Arrow */}
+              <div className="absolute bottom-2 right-2 text-[#E91E63] animate-bounce">▼</div>
+            </div>
+
+            {/* OPTIONS */}
+            {!feedbackMessage && (
+              <div className="w-1/3 bg-white border-4 border-[#5D4037] rounded p-2 flex flex-col gap-2 shadow-inner">
+                {activeScenario.options.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleOptionSelect(opt)}
+                    className="text-left px-3 py-2 hover:bg-[#F1C40F] hover:text-[#333] transition-colors text-xs font-bold border border-transparent hover:border-[#333] rounded group"
+                  >
+                    <span className="group-hover:visible invisible mr-1">▶</span>
+                    {opt.text}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowDialogue(false)}
+                  className="mt-auto text-center text-[10px] text-red-500 hover:underline py-1"
+                >
+                  RUN AWAY
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {transitionOverlay}
+
+      <style>{`
+        @keyframes flash {
+            0% { background-color: transparent; }
+            10% { background-color: black; }
+            20% { background-color: white; }
+            30% { background-color: black; }
+            40% { background-color: white; }
+            50% { background-color: black; }
+            60% { background-color: white; }
+            70% { background-color: black; }
+            80% { background-color: white; }
+            90% { background-color: black; }
+            100% { background-color: transparent; }
+        }
+        .animate-flash {
+            animation: flash 1.5s steps(10, end);
+        }
+      `}</style>
     </div>
   );
 };
