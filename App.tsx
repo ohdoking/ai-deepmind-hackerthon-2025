@@ -143,8 +143,8 @@ const App: React.FC = () => {
             <>
               <header className="p-8 text-center animate-fade-in-down">
                 <h1 className="font-pixel text-5xl text-yellow-400 mb-2 leading-relaxed tracking-wider drop-shadow-[4px_4px_0_#000]">
-                  ANTIGRAVITY<br />
-                  <span className="text-white text-3xl">SAFETY AGENT</span>
+                  SAFEGUARD<br />
+                  <span className="text-white text-3xl">CARD COLLECTION</span>
                 </h1>
                 <p className="font-retro text-2xl text-blue-300 max-w-lg mx-auto mb-10 tracking-widest">
                   PRESS START TO BEGIN
@@ -159,7 +159,7 @@ const App: React.FC = () => {
                   <h3 className="font-pixel text-yellow-400 text-lg mb-2">START ADVENTURE</h3>
                   <p className="font-retro text-blue-200">Play campaign mode with Wizards, Robots & Archers.</p>
                 </button>
-                <div className="relative group p-6 bg-stone-800 rounded border-4 border-stone-600 shadow-xl hover:bg-stone-700 transition-all">
+                {/* <div className="relative group p-6 bg-stone-800 rounded border-4 border-stone-600 shadow-xl hover:bg-stone-700 transition-all">
                   <div className="absolute top-0 right-0 p-4 opacity-30 group-hover:opacity-100 text-4xl">📷</div>
                   <h3 className="font-pixel text-white text-lg mb-2">SCAN PHOTO</h3>
                   <p className="font-retro text-stone-400 mb-4">Analyze a real photo to generate a level.</p>
@@ -169,7 +169,7 @@ const App: React.FC = () => {
                     </div>
                     <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
                   </label>
-                </div>
+                </div> */}
               </div>
             </>
           )}
